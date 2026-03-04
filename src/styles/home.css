@@ -1,0 +1,11 @@
+.home {
+  text-align: center;
+  padding: 50px;
+}
+
+.hero button {
+  padding: 10px 20px;
+  background: black;
+  color: white;
+  border: none;
+}
