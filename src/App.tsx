@@ -6,6 +6,8 @@ import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { AuthProvider } from "./context/AuthContext";
 import { VerifyEmail } from "./pages/auth/VerifyEmail";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminUsers } from "./pages/admin/AdminUsers";
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/admin" element={<AdminDashboard />} /> 
+             <Route path="/admin/usuarios" element={<AdminUsers />} />
 
           </Route>
 

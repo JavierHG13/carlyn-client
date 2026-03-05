@@ -14,7 +14,7 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login({ correo_electronico, contrasena });
+    await login({ correoElectronico, contrasena });
 
   };
 
@@ -70,7 +70,7 @@ export const Login: React.FC = () => {
             label="Correo electrónico"
             type="email"
             placeholder="tu@email.com"
-            value={correo_electronico}
+            value={correoElectronico}
             onChange={(e) => setCorreo(e.target.value)}
             required
             icon={faEnvelope}

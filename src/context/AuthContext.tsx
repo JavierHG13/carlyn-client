@@ -1,39 +1,21 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/axios";
 
-type UserRole = "Cliente" | "Admin" | "Empleado" | "Propietario";
-
-const ROLE_MAP: Record<number, UserRole> = {
-    1: "Admin",
-    2: "Cliente",
-    3: "Empleado",
-    4: "Propietario",
-};
+type UserRole = "Admin" | "Barbero" | "Cliente";
 
 interface User {
-    id: string;
-    nombre_completo: string;
-    correo_electronico: string;
+    id: number;
+    nombre: string;
+    email: string;
     telefono?: string;
-    id_rol: number;
-    rol?: UserRole; // derivado del id_rol
-}
-
-// Agregar a AuthContextValue
-interface AuthContextValue {
-    user: User | null;
-    loading: boolean;
-    login: (credentials: { correo_electronico: string; contrasena: string }) => Promise<void>;
-    loginOAuth: (accessToken: string) => Promise<void>;
-    logout: () => void;
-    isAuthenticated: boolean;
-    errors?: string;
-    hasRole: (requiredRole: UserRole) => boolean;
-    updateUser: (updatedUser: User) => void;
-    register: (data: RegisterData) => Promise<void>;
-    verifyEmail: (data: VerifyEmailData) => Promise<void>;
-    resendCode: (correoElectronico: string) => Promise<void>;
+    rol_id: number;
+    rol: UserRole; 
+    foto?: string | null;
+    activo: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 interface RegisterData {
@@ -48,6 +30,21 @@ interface VerifyEmailData {
     code: string;
 }
 
+interface AuthContextValue {
+    user: User | null;
+    loading: boolean;
+    login: (credentials: { correoElectronico: string; contrasena: string }) => Promise<void>;
+    loginOAuth: (accessToken: string) => Promise<void>;
+    logout: () => void;
+    isAuthenticated: boolean;
+    errors?: string;
+    hasRole: (requiredRole: UserRole) => boolean;
+    updateUser: (updatedUser: User) => void;
+    register: (data: RegisterData) => Promise<void>;
+    verifyEmail: (data: VerifyEmailData) => Promise<void>;
+    resendCode: (correoElectronico: string) => Promise<void>;
+}
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -57,22 +54,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const navigate = useNavigate();
 
-    // Enriquecer usuario con rol legible
-    const enrichUser = (userData: User): User => ({
-        ...userData,
-        rol: ROLE_MAP[userData.id_rol],
-    });
-
-    // Verificar autenticación al cargar la aplicación
+    //Verificar sesión al cargar app
     useEffect(() => {
         const checkAuth = async () => {
             try {
                 const token = localStorage.getItem("jwt");
-                if (!token) return;
+                if (!token) {
+                    setLoading(false);
+                    return;
+                }
 
-                const response = await api.get("/auth/profile"); // ✅ corregido
-                setUser(enrichUser(response.data));
-                setIsAuthenticated(true);
+                /*const response = await api.get("/auth/profile");
+                setUser(response.data);
+                setIsAuthenticated(true);*/
             } catch {
                 setUser(null);
                 setIsAuthenticated(false);
@@ -84,19 +78,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         checkAuth();
     }, []);
 
-    // Función para iniciar sesión
-    const login = async (credentials: { correo_electronico: string; contrasena: string }): Promise<void> => {
+    // 🔐 Login normal
+    const login = async (credentials: { correoElectronico: string; contrasena: string }) => {
         setLoading(true);
+        setErrors(undefined);
+
         try {
             const response = await api.post("/auth/login", credentials);
-            const { token, user } = response.data; // ✅ faltaba esto
+            const { token, user } = response.data;
 
             localStorage.setItem("jwt", token);
-            const enriched = enrichUser(user);
-            setUser(enriched);
+            setUser(user);
             setIsAuthenticated(true);
 
-            navigate(enriched.rol === "Admin" ? "/dashboard" : "/inicio");
+            // Redirección según rol
+            navigate(user.rol === "Admin" ? "/dashboard" : "/inicio");
+
         } catch (err: any) {
             setIsAuthenticated(false);
             setErrors(err.response?.data?.message || "Credenciales incorrectas");
@@ -105,19 +102,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    // Función para iniciar sesión con Google
-    const loginOAuth = async (credential: string): Promise<void> => {
+    // 🔐 Login con Google
+    const loginOAuth = async (credential: string) => {
         setLoading(true);
+        setErrors(undefined);
+
         try {
-            const response = await api.post("/auth/google", { googleToken: credential }); // ✅ corregido
+            const response = await api.post("/auth/google", { googleToken: credential });
             const { token, user } = response.data;
 
             localStorage.setItem("jwt", token);
-            const enriched = enrichUser(user);
-            setUser(enriched);
+            setUser(user);
             setIsAuthenticated(true);
 
-            navigate(enriched.rol === "Cliente" ? "/inicio" : "/dashboard");
+            navigate(user.rol === "Admin" ? "/admin" : "/inicio");
+
         } catch (err: any) {
             setIsAuthenticated(false);
             setErrors(err.response?.data?.message || "Error al iniciar sesión con Google");
@@ -126,8 +125,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const register = async (data: RegisterData): Promise<void> => {
+    // 📝 Registro
+    const register = async (data: RegisterData) => {
         setLoading(true);
+        setErrors(undefined);
+
         try {
             await api.post("/auth/register", data);
             navigate("/verify-email", { state: { correoElectronico: data.correoElectronico } });
@@ -138,20 +140,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const verifyEmail = async (data: VerifyEmailData): Promise<void> => {
+    // 📧 Verificar correo
+    const verifyEmail = async (data: VerifyEmailData) => {
         setLoading(true);
+        setErrors(undefined);
+
         try {
             await api.post("/auth/verify-email", data);
-            navigate("/login", { state: { verified: true } }); // para mostrar mensaje de éxito en login
+            navigate("/login", { state: { verified: true } });
         } catch (err: any) {
             setErrors(err.response?.data?.message || "Código incorrecto o expirado");
-            throw err; // re-throw para que la vista pueda resetear los inputs
+            throw err;
         } finally {
             setLoading(false);
         }
     };
 
-    const resendCode = async (correoElectronico: string): Promise<void> => {
+    // 🔁 Reenviar código
+    const resendCode = async (correoElectronico: string) => {
         try {
             await api.post("/auth/resend-code", { correoElectronico });
         } catch (err: any) {
@@ -160,22 +166,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    // Función para cerrar sesión
-    const logout = (): void => {
+    // 🚪 Logout
+    const logout = () => {
         localStorage.removeItem("jwt");
         setUser(null);
         setIsAuthenticated(false);
         navigate("/login");
     };
 
-    // Verificar rol
-    const hasRole = (requiredRole: UserRole): boolean => {
-        return user?.rol === requiredRole; // ✅ usa el rol enriquecido
+    // 🎭 Validar rol
+    const hasRole = (requiredRole: UserRole) => {
+        return user?.rol === requiredRole;
     };
 
-    const updateUser = (updatedUser: User) => setUser(enrichUser(updatedUser));
+    // 🔄 Actualizar usuario
+    const updateUser = (updatedUser: User) => {
+        setUser(updatedUser);
+    };
 
-    // Limpiar errores después de 5 segundos
+    // 🧹 Limpiar errores después de 5s
     useEffect(() => {
         if (!errors) return;
         const timer = setTimeout(() => setErrors(undefined), 5000);
@@ -184,7 +193,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return (
         <AuthContext.Provider
-            value={{ user, loading, login, loginOAuth, logout, hasRole, errors, isAuthenticated, updateUser, register, verifyEmail, resendCode }}
+            value={{
+                user,
+                loading,
+                login,
+                loginOAuth,
+                logout,
+                hasRole,
+                errors,
+                isAuthenticated,
+                updateUser,
+                register,
+                verifyEmail,
+                resendCode
+            }}
         >
             {children}
         </AuthContext.Provider>
