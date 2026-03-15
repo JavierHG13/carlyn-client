@@ -1,6 +1,7 @@
 import api from './axios';
 import type { User, CreateUserData, UpdateUserData, UserFilters, PaginatedResponse } from '../types/user';
 
+
 export const userService = {
   // Obtener todos los usuarios con filtros
   getAll: async (filters?: UserFilters): Promise<PaginatedResponse<User>> => {
@@ -14,17 +15,21 @@ export const userService = {
       
       const response = await api.get(`/admin/usuarios?${params.toString()}`);
       
-      // Asegurarnos de que la respuesta tenga la estructura esperada
+      // La estructura que devuelve tu backend es:
+      // {
+      //   usuarios: Array(1),
+      //   pagination: { total: 1, page: 1, limit: 10, totalPages: 1 }
+      // }
+      
       return {
-        data: response.data.data || [],
-        total: response.data.total || 0,
-        page: response.data.page || 1,
-        limit: response.data.limit || 10,
-        totalPages: response.data.totalPages || 1
+        data: response.data.usuarios || [],  // Aquí están los usuarios
+        total: response.data.pagination?.total || 0,
+        page: response.data.pagination?.page || 1,
+        limit: response.data.pagination?.limit || 10,
+        totalPages: response.data.pagination?.totalPages || 1
       };
     } catch (error) {
       console.error('Error en getAll:', error);
-      // Devolver una estructura vacía en caso de error
       return {
         data: [],
         total: 0,
@@ -89,14 +94,13 @@ export const userService = {
     }
   },
 
-  // Obtener estadísticas generales (con manejo de error)
+  // Obtener estadísticas generales
   getStats: async () => {
     try {
       const response = await api.get('/admin/usuarios/estadisticas/generales');
       return response.data;
     } catch (error) {
       console.error('Error obteniendo estadísticas:', error);
-      // Devolver datos por defecto si hay error
       return {
         totalAppointments: 0,
         totalRevenue: 0,

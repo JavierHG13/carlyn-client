@@ -59,14 +59,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const checkAuth = async () => {
             try {
                 const token = localStorage.getItem("jwt");
+
                 if (!token) {
                     setLoading(false);
                     return;
                 }
 
-                /*const response = await api.get("/auth/profile");
-                setUser(response.data);
-                setIsAuthenticated(true);*/
+                const response = await api.get("/auth/profile");
+
+                console.log("Obteniendo autenticacion")
+                console.log("Perfil obtenido", response.data)
+
+                setUser(response.data.user);
+                setIsAuthenticated(true);
             } catch {
                 setUser(null);
                 setIsAuthenticated(false);
@@ -88,11 +93,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { token, user } = response.data;
 
             localStorage.setItem("jwt", token);
+
+            console.log()
             setUser(user);
             setIsAuthenticated(true);
 
             // Redirección según rol
-            navigate(user.rol === "Admin" ? "/dashboard" : "/inicio");
+            navigate(user.rol === "Admin" ? "/admin" : "/inicio");
 
         } catch (err: any) {
             setIsAuthenticated(false);
@@ -112,6 +119,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { token, user } = response.data;
 
             localStorage.setItem("jwt", token);
+
+            console.log("User del backend", user)
             setUser(user);
             setIsAuthenticated(true);
 

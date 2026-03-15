@@ -16,7 +16,7 @@ import {
   faTimesCircle,
   faHourglassHalf
 } from '@fortawesome/free-solid-svg-icons';
-import { AdminLayout } from '../../components/admin/AdminLayout';
+import { AdminLayout } from '../../layouts/AdminLayout';
 import { StatsCard } from '../../components/admin/StatsCard';
 import { colors } from '../../styles/colors';
 import api from '../../services/axios';

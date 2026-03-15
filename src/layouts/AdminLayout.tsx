@@ -13,12 +13,13 @@ import {
   faRightFromBracket,
   faBars,
   faTimes,
+  faBox,
   faBell,
   faSearch,
   faChevronDown,
   faHome
 } from '@fortawesome/free-solid-svg-icons';
-import { colors } from '../../styles/colors';
+import { colors } from '../styles/colors';
 
 interface AdminLayoutProps {
   children?: React.ReactNode;
@@ -33,6 +34,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: faChartLine, label: 'Dashboard', path: '/admin' },
     { icon: faCalendarCheck, label: 'Citas', path: '/admin/citas' },
     { icon: faUsers, label: 'Usuarios', path: '/admin/usuarios' },
+       { icon: faBox, label: 'Productos', path: '/admin/productos' },
     { icon: faUserTie, label: 'Barberos', path: '/admin/barberos' },
     { icon: faScissors, label: 'Servicios', path: '/admin/servicios' },
     { icon: faClock, label: 'Horarios', path: '/admin/horarios' },
@@ -197,7 +199,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <aside style={sidebarStyle}>
         <div style={sidebarHeaderStyle}>
-          <span style={logoStyle}>Barbería Carlyn</span>
+          <span style={logoStyle}>Menu Principal</span>
           <FontAwesomeIcon 
             icon={sidebarOpen ? faTimes : faBars} 
             style={{ cursor: 'pointer', fontSize: '20px' }}
@@ -251,64 +253,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main style={mainContentStyle}>
-        <header style={headerStyle}>
-          <div style={searchContainerStyle}>
-            <FontAwesomeIcon icon={faSearch} style={{ color: '#9AA6B2' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar..." 
-              style={searchInputStyle}
-            />
-          </div>
-
-          <div style={headerActionsStyle}>
-            <div style={notificationBadgeStyle}>
-              <FontAwesomeIcon icon={faBell} style={{ fontSize: '20px', color: colors.azulAcero }} />
-              <span style={badgeStyle}>3</span>
-            </div>
-
-            <div 
-              style={userMenuStyle}
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-            >
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: colors.doradoClasico,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 'bold',
-              }}>
-                A
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '14px' }}>Admin User</div>
-                <div style={{ fontSize: '12px', color: '#9AA6B2' }}>Administrador</div>
-              </div>
-              <FontAwesomeIcon icon={faChevronDown} style={{ fontSize: '12px', marginLeft: '8px' }} />
-
-              {userMenuOpen && (
-                <div style={userDropdownStyle}>
-                  <div style={dropdownItemStyle}>
-                    <FontAwesomeIcon icon={faUserTie} />
-                    <span>Mi Perfil</span>
-                  </div>
-                  <div style={dropdownItemStyle}>
-                    <FontAwesomeIcon icon={faGear} />
-                    <span>Configuración</span>
-                  </div>
-                  <div style={{ ...dropdownItemStyle, borderTop: '1px solid #eee', marginTop: '8px', paddingTop: '12px' }}>
-                    <FontAwesomeIcon icon={faRightFromBracket} />
-                    <span>Cerrar Sesión</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        
 
         {/* Content Area */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px' }}>

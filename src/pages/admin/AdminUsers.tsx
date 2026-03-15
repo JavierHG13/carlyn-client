@@ -1,12 +1,13 @@
 // src/pages/admin/AdminUsers.tsx
 import React, { useEffect, useState } from 'react';
-import { AdminLayout } from '../../components/admin/AdminLayout';
+import { AdminLayout } from '../../layouts/AdminLayout';
 import { UsersTable } from '../../components/admin/UsersTable';
 import { UserModal } from '../../components/admin/UserModal';
 import { UserDetailsModal } from '../../components/admin/UserDetailsModal';
 import { userService } from '../../services/userService';
 import type { User, CreateUserData, UpdateUserData } from '../../types/user';
 import { colors } from '../../styles/colors';
+
 
 export const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -15,13 +16,19 @@ export const AdminUsers: React.FC = () => {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
-  const [totalUsers, setTotalUsers] = useState(0);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1
+  });
   const [filters, setFilters] = useState({
     search: '',
     rol: '',
     page: 1,
     limit: 10,
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -30,11 +37,20 @@ export const AdminUsers: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await userService.getAll(filters);
+      
       setUsers(response.data);
-      setTotalUsers(response.total);
+      setPagination({
+        total: response.total,
+        page: response.page,
+        limit: response.limit,
+        totalPages: response.totalPages
+      });
     } catch (error) {
       console.error('Error loading users:', error);
+      setError('Error al cargar los usuarios. Por favor, intenta de nuevo.');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -48,6 +64,7 @@ export const AdminUsers: React.FC = () => {
       setModalOpen(false);
     } catch (error) {
       console.error('Error creating user:', error);
+      alert('Error al crear el usuario');
     } finally {
       setModalLoading(false);
     }
@@ -63,6 +80,7 @@ export const AdminUsers: React.FC = () => {
       setSelectedUser(null);
     } catch (error) {
       console.error('Error updating user:', error);
+      alert('Error al actualizar el usuario');
     } finally {
       setModalLoading(false);
     }
@@ -76,6 +94,7 @@ export const AdminUsers: React.FC = () => {
       await loadUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
+      alert('Error al eliminar el usuario');
     }
   };
 
@@ -85,16 +104,45 @@ export const AdminUsers: React.FC = () => {
       await loadUsers();
     } catch (error) {
       console.error('Error toggling user status:', error);
+      alert('Error al cambiar el estado del usuario');
     }
   };
 
-  const handleSearch = (term: string) => {
-    setFilters(prev => ({ ...prev, search: term, page: 1 }));
+  const handlePageChange = (newPage: number) => {
+    setFilters(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleFilterRole = (role: string) => {
-    setFilters(prev => ({ ...prev, rol: role, page: 1 }));
-  };
+  if (error) {
+    return (
+      <AdminLayout>
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '60px 20px',
+          backgroundColor: '#FEE2E2',
+          borderRadius: '12px',
+          color: '#EF4444'
+        }}>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px' }}>Error</h3>
+          <p style={{ marginBottom: '24px' }}>{error}</p>
+          <button 
+            onClick={loadUsers}
+            style={{
+              padding: '10px 24px',
+              backgroundColor: '#EF4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 500,
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -111,9 +159,12 @@ export const AdminUsers: React.FC = () => {
           setSelectedUser(user);
           setDetailsModalOpen(true);
         }}
-        totalUsers={totalUsers}
-        onSearch={handleSearch}
-        onFilterRole={handleFilterRole}
+        totalUsers={pagination.total}
+        onSearch={(term) => setFilters(prev => ({ ...prev, search: term, page: 1 }))}
+        onFilterRole={(role) => setFilters(prev => ({ ...prev, rol: role, page: 1 }))}
+        onPageChange={handlePageChange}
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
       />
 
       <UserModal
