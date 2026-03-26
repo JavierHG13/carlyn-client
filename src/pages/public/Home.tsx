@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
+import {
   faScissors,
   faCalendarCheck,
   faUser,
@@ -55,16 +55,21 @@ export const Home: React.FC = () => {
     overflowX: 'hidden',
   };
 
-  
+
 
   // Hero Section
   const heroStyle: React.CSSProperties = {
-    background: `linear-gradient(rgba(54, 69, 79, 0.9), rgba(54, 69, 79, 0.9)), url('/api/placeholder/1920/600')`,
+    backgroundImage: `url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')`,
     backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    padding: '100px 24px',
-    textAlign: 'center',
+    backgroundPosition: 'center top',
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   };
+
+  
 
   const heroContentStyle: React.CSSProperties = {
     maxWidth: '800px',
@@ -309,15 +314,23 @@ export const Home: React.FC = () => {
 
   return (
     <div style={containerStyle}>
-  
+
       {/* Hero Section */}
       <section id="inicio" style={heroStyle}>
-        <div style={heroContentStyle}>
+
+        {/* Overlay oscuro */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(10,16,20,0.55) 0%, rgba(10,16,20,0.35) 40%, rgba(10,16,20,0.72) 100%)',
+        }} />
+        
+        <div style={{ ...heroContentStyle, position: 'relative', zIndex: 1 }}>
+          
           <h1 style={heroTitleStyle}>
             Tradición y Estilo en Cada Corte
           </h1>
           <p style={heroSubtitleStyle}>
-            Más de 10 años ofreciendo servicios de barbería de alta calidad. 
+            Más de 10 años ofreciendo servicios de barbería de alta calidad.
             Donde la tradición se encuentra con las tendencias modernas.
           </p>
           <div style={heroButtonsStyle}>
@@ -353,14 +366,14 @@ export const Home: React.FC = () => {
         <div style={sectionContentStyle}>
           <h2 style={sectionTitleStyle}>Nuestros Servicios</h2>
           <p style={sectionSubtitleStyle}>
-            Ofrecemos una amplia gama de servicios de barbería, 
+            Ofrecemos una amplia gama de servicios de barbería,
             utilizando productos de alta calidad y técnicas profesionales.
           </p>
-          
+
           <div style={servicesGridStyle}>
             {services.map(service => (
-              <div 
-                key={service.id} 
+              <div
+                key={service.id}
                 style={serviceCardStyle}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-5px)';
@@ -394,11 +407,11 @@ export const Home: React.FC = () => {
           <p style={sectionSubtitleStyle}>
             Profesionales apasionados por su oficio, dedicados a realzar tu estilo
           </p>
-          
+
           <div style={barbersGridStyle}>
             {barbers.map(barber => (
-              <div 
-                key={barber.id} 
+              <div
+                key={barber.id}
                 style={barberCardStyle}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-5px)';
@@ -432,7 +445,7 @@ export const Home: React.FC = () => {
           <p style={sectionSubtitleStyle}>
             La satisfacción de nuestros clientes es nuestro mejor aval
           </p>
-          
+
           <div style={testimonialsGridStyle}>
             {testimonials.map(testimonial => (
               <div key={testimonial.id} style={testimonialCardStyle}>
@@ -453,7 +466,7 @@ export const Home: React.FC = () => {
       {/* CTA Section */}
       <section style={ctaStyle}>
         <div style={sectionContentStyle}>
-          <h2 style={{...ctaTitleStyle, ...sectionTitleStyle}}>
+          <h2 style={{ ...ctaTitleStyle, ...sectionTitleStyle }}>
             ¿Listo para un cambio de imagen?
           </h2>
           <p style={ctaTextStyle}>

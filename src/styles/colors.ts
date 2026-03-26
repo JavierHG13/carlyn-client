@@ -1,7 +1,7 @@
 // src/styles/colors.ts
 export const colors = {
   // Primarios
-  grafito: '#36454F',
+  grafito:  '#1A1A1A',
   blancoHueso: '#F5F5F5',
 
   // Secundarios
