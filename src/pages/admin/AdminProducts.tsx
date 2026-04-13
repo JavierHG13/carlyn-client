@@ -127,7 +127,7 @@ export const AdminProducts: React.FC = () => {
         }
     };
 
-    const handleToggleStatus = async (product: Product) => {
+    /*const handleToggleStatus = async (product: Product) => {
         try {
             await productService.update(product.id, { activo: !product.activo });
             await loadProducts();
@@ -135,7 +135,7 @@ export const AdminProducts: React.FC = () => {
             console.error('Error toggling product status:', error);
             alert('Error al cambiar el estado del producto');
         }
-    };
+    };*/
 
     const handleExport = async () => {
         try {
@@ -503,10 +503,7 @@ export const AdminProducts: React.FC = () => {
                                                     <span style={{ fontWeight: 600, fontSize: '16px' }}>
                                                         {product.stock}
                                                     </span>
-                                                    <span style={{ fontSize: '12px', color: '#718096', marginLeft: '4px' }}>
-                                                        / min: {product.stock_minimo}
-                                                    </span>
-                                                    <div style={{ marginTop: '4px' }}>
+                                                    {/*<div style={{ marginTop: '4px' }}>
                                                         <span style={stockBadgeStyle(stockStatus)}>
                                                             <FontAwesomeIcon icon={
                                                                 stockStatus.label === 'Sin stock' ? faTimesCircle :
@@ -515,7 +512,7 @@ export const AdminProducts: React.FC = () => {
                                                             } style={{ fontSize: '10px' }} />
                                                             {stockStatus.label}
                                                         </span>
-                                                    </div>
+                                                    </div>*/}
                                                 </div>
                                             </td>
                                             <td style={tdStyle}>
@@ -546,13 +543,7 @@ export const AdminProducts: React.FC = () => {
                                                     >
                                                         <FontAwesomeIcon icon={faEdit} />
                                                     </button>
-                                                    <button
-                                                        style={actionButtonStyle(product.activo ? '#10B981' : '#EF4444')}
-                                                        onClick={() => handleToggleStatus(product)}
-                                                        title={product.activo ? 'Desactivar' : 'Activar'}
-                                                    >
-                                                        <FontAwesomeIcon icon={product.activo ? faToggleOn : faToggleOff} />
-                                                    </button>
+                                            
                                                     <button
                                                         style={actionButtonStyle('#EF4444')}
                                                         onClick={() => handleDeleteProduct(product)}

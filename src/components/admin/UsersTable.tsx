@@ -347,7 +347,6 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                       </div>
                       <div>
                         <div style={{ fontWeight: 500 }}>{user.nombre}</div>
-                        <div style={{ fontSize: '12px', color: '#718096' }}>ID: {user.id}</div>
                       </div>
                     </div>
                   </td>

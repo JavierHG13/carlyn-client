@@ -6,10 +6,20 @@ import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { AuthProvider } from "./context/AuthContext";
 import { VerifyEmail } from "./pages/auth/VerifyEmail";
+import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminDatabase } from "./pages/admin/AdminDatabase";
 import { AdminProducts } from "./pages/admin/AdminProducts";
+import { AdminBarberos } from "./pages/admin/AdminBarberos";
+import { AdminServicios } from "./pages/admin/AdminServicios";
+import { AdminCitas } from "./pages/admin/AdminCitas";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { ProductList } from "./pages/public/productos/ProductList";
+import { ProductDetail } from "./pages/public/productos/ProductDetail";
+import { ServiciosPublicos } from "./pages/public/servicios/servicios";
+import { AgendarCita } from "./pages/public/servicios/AgendarCita";
+// Dentro de Routes
 
 import './App.css'
 
@@ -18,21 +28,32 @@ function App() {
 
     <BrowserRouter>
       <AuthProvider>
+
         <Routes>
 
           <Route element={<MainLayout />}>
 
             <Route path="/" element={<Home />} />
+            <Route path="/productos" element={<ProductList />} />
+            <Route path="/productos/:id" element={<ProductDetail />} />
+            <Route path="/servicios" element={<ServiciosPublicos />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/usuarios" element={<AdminUsers />} />
-            <Route path="/admin/database" element={<AdminDatabase />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/agendar-cita" element={<AgendarCita />} />
 
-            <Route path="/admin/productos" element={
-              <AdminProducts />
-            } />
+
+            <Route element={<ProtectedRoute requiredRole="Admin" />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/usuarios" element={<AdminUsers />} />
+              <Route path="/admin/database" element={<AdminDatabase />} />
+              <Route path="/admin/productos" element={<AdminProducts />} />
+              <Route path="/admin/servicios" element={<AdminServicios />} />
+              <Route path="/admin/citas" element={<AdminCitas />} />
+              <Route path="/admin/barberos" element={<AdminBarberos />} />
+              
+            </Route>
 
           </Route>
 

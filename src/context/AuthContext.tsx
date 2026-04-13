@@ -60,6 +60,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             try {
                 const token = localStorage.getItem("jwt");
 
+                console.log(token)
                 if (!token) {
                     setLoading(false);
                     return;
@@ -116,6 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         try {
             const response = await api.post("/auth/google", { googleToken: credential });
+            
             const { token, user } = response.data;
 
             localStorage.setItem("jwt", token);

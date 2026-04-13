@@ -40,8 +40,9 @@ export interface ProductFilters {
   activo?: boolean;
   page?: number;
   limit?: number;
+  minPrice?: number;
+  maxPrice?: number;
 }
-
 export interface PaginatedResponse<T> {
   message: string;
   data: T[];

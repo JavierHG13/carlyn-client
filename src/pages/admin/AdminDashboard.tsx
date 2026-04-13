@@ -55,10 +55,10 @@ export const AdminDashboard: React.FC = () => {
       const statsResponse = await api.get('/admin/usuarios/estadisticas/generales');
       
       // Obtener citas recientes (asumiendo que tienes un endpoint para esto)
-      const appointmentsResponse = await api.get('/admin/citas/recientes');
+     //const appointmentsResponse = await api.get('/admin/citas/recientes');
       
-      setStats(statsResponse.data);
-      setRecentAppointments(appointmentsResponse.data);
+      //setStats(statsResponse.data);
+      //setRecentAppointments(appointmentsResponse.data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {

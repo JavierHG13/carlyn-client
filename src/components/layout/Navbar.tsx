@@ -224,8 +224,6 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     return '/';
   };
 
-  // ─── Render ────────────────────────────────────────────────
-
   return (
     <header style={headerStyle}>
       <nav style={navStyle}>
@@ -233,7 +231,7 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
         {/* Logo */}
         <div style={logoContainerStyle} onClick={() => navigate('/')}>
           <img
-            src="/logo.png"
+            src="/logo.png."
             alt="Barbería Carlyn"
             style={logoImageStyle}
             onError={(e) => {
@@ -256,16 +254,15 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
         {!isMobile && (
           <div style={navLinksStyle}>
             <Link to="/" style={navLinkStyle}>Inicio</Link>
-                 <Link to="/productos" style={navLinkStyle}>Productos</Link>
             <Link to="/servicios" style={navLinkStyle}>Servicios</Link>
-            <Link to="/contacto" style={navLinkStyle}>Contacto</Link>
+            <Link to="/Nostros" style={navLinkStyle}>Nosotros</Link>
           </div>
         )}
 
         {/* Right Section */}
         <div style={rightSectionStyle}>
 
-          {/* Botón Agendar Cita — siempre visible en desktop */}
+          {/* Botón Agendar Cita — siempre visible en desktop
           {!isMobile && (
             <button
               style={pillButtonStyle}
@@ -281,18 +278,18 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
             >
               Agendar Cita
             </button>
-          )}
+          )}  */}
 
           {isAuthenticated ? (
             <>
-              {/* Notificaciones */}
+              {/* Notificaciones 
               <button
                 style={iconButtonStyle}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <FontAwesomeIcon icon={faBell} />
-              </button>
+                <FontAwesomeIcon icon={faBell} /> 
+              </button> */}
 
               {/* Menú de usuario */}
               <div style={userMenuContainerStyle}>

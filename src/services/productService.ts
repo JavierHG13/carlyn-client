@@ -1,23 +1,26 @@
-import api from './axios';
-import type{ 
-  Product, 
-  CreateProductData, 
-  UpdateProductData, 
-  ProductFilters, 
+import api from "./axios";
+import type {
+  Product,
+  CreateProductData,
+  UpdateProductData,
+  ProductFilters,
   PaginatedResponse,
-  ImportResult 
-} from '../types/product';
+  ImportResult,
+} from "../types/product";
 
 export const productService = {
   // Listar productos con filtros
-  list: async (filters?: ProductFilters): Promise<PaginatedResponse<Product>> => {
+  list: async (
+    filters?: ProductFilters,
+  ): Promise<PaginatedResponse<Product>> => {
     const params = new URLSearchParams();
-    if (filters?.q) params.append('q', filters.q);
-    if (filters?.categoria) params.append('categoria', filters.categoria);
-    if (filters?.activo !== undefined) params.append('activo', String(filters.activo));
-    if (filters?.page) params.append('page', String(filters.page));
-    if (filters?.limit) params.append('limit', String(filters.limit));
-    
+    if (filters?.q) params.append("q", filters.q);
+    if (filters?.categoria) params.append("categoria", filters.categoria);
+    if (filters?.activo !== undefined)
+      params.append("activo", String(filters.activo));
+    if (filters?.page) params.append("page", String(filters.page));
+    if (filters?.limit) params.append("limit", String(filters.limit));
+
     const response = await api.get(`/productos?${params.toString()}`);
     return response.data;
   },
@@ -28,9 +31,20 @@ export const productService = {
     return response.data.data;
   },
 
+  getCategories: async (): Promise<string[]> => {
+    const response = await api.get("/productos");
+    const categories = response.data.data
+      .map((p: Product) => p.categoria)
+      .filter(
+        (c: string | null, i: number, arr: (string | null)[]) =>
+          c && arr.indexOf(c) === i,
+      );
+    return categories;
+  },
+
   // Crear producto
   create: async (data: CreateProductData): Promise<Product> => {
-    const response = await api.post('/productos', data);
+    const response = await api.post("/productos", data);
     return response.data.data;
   },
 
@@ -46,23 +60,24 @@ export const productService = {
   },
 
   // Exportar a CSV
-  exportCsv: async (filters?: Omit<ProductFilters, 'page' | 'limit'>) => {
+  exportCsv: async (filters?: Omit<ProductFilters, "page" | "limit">) => {
     const params = new URLSearchParams();
-    if (filters?.q) params.append('q', filters.q);
-    if (filters?.categoria) params.append('categoria', filters.categoria);
-    if (filters?.activo !== undefined) params.append('activo', String(filters.activo));
-    
+    if (filters?.q) params.append("q", filters.q);
+    if (filters?.categoria) params.append("categoria", filters.categoria);
+    if (filters?.activo !== undefined)
+      params.append("activo", String(filters.activo));
+
     const response = await api.get(`/productos/export?${params.toString()}`, {
-      responseType: 'blob',
+      responseType: "blob",
     });
-    
+
     // Crear URL del blob y descargar
     const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    
+
     const filename = `productos_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.setAttribute('download', filename);
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -72,11 +87,11 @@ export const productService = {
   // Importar desde CSV (archivo)
   importFromFile: async (file: File): Promise<ImportResult> => {
     const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await api.post('/productos/import', formData, {
+    formData.append("file", file);
+
+    const response = await api.post("/productos/import", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
@@ -84,9 +99,9 @@ export const productService = {
 
   // Importar desde texto CSV
   importFromText: async (csvText: string): Promise<ImportResult> => {
-    const response = await api.post('/productos/import', csvText, {
+    const response = await api.post("/productos/import", csvText, {
       headers: {
-        'Content-Type': 'text/csv',
+        "Content-Type": "text/csv",
       },
     });
     return response.data;
@@ -94,11 +109,12 @@ export const productService = {
 
   // Obtener categorías únicas (para filtros)
   getUniqueCategories: async (): Promise<string[]> => {
-    const response = await api.get('/productos');
+    const response = await api.get("/productos");
     const categories = response.data.data
       .map((p: Product) => p.categoria)
-      .filter((c: string | null, i: number, arr: (string | null)[]) => 
-        c && arr.indexOf(c) === i
+      .filter(
+        (c: string | null, i: number, arr: (string | null)[]) =>
+          c && arr.indexOf(c) === i,
       );
     return categories;
   },
