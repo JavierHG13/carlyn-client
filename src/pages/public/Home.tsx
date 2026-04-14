@@ -28,7 +28,7 @@ const useCountUp = (end: number, duration: number = 2000, startOnView: boolean =
   useEffect(() => {
     if (startOnView && !isInView) return;
     if (hasStarted) return;
-    
+
     setHasStarted(true);
     let startTime: number;
     const animate = (timestamp: number) => {
@@ -69,7 +69,7 @@ const scaleUp: Variants = {
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-  
+
   // Estado para servicios desde la BD
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loadingServicios, setLoadingServicios] = useState(true);
@@ -322,7 +322,7 @@ export const Home: React.FC = () => {
   // Componente Stat con contador
   const StatItem: React.FC<{ stat: typeof statsData[0]; index: number }> = ({ stat, index }) => {
     const { count, ref } = useCountUp(stat.value, 2000);
-    
+
     return (
       <motion.div
         ref={ref}
@@ -355,7 +355,7 @@ export const Home: React.FC = () => {
           inset: 0,
           background: 'linear-gradient(to bottom, rgba(10,16,20,0.6) 0%, rgba(10,16,20,0.4) 40%, rgba(10,16,20,0.75) 100%)',
         }} />
-        
+
         <motion.div
           style={{ ...heroContentStyle, position: 'relative', zIndex: 1 }}
           initial="hidden"
@@ -371,13 +371,7 @@ export const Home: React.FC = () => {
           </motion.p>
           <motion.div style={heroButtonsStyle} variants={fadeInUp}>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="accent" size="large">
-                <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '8px' }} />
-                Agendar Cita
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="secondary" size="large">
+              <Button variant="secondary" size="large" onClick={() => navigate("/nosotros")}>
                 Conocer Más
                 <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: '8px' }} />
               </Button>
@@ -435,78 +429,36 @@ export const Home: React.FC = () => {
             </p>
           </motion.div>
 
-          {loadingServicios ? (
-            <div style={{ textAlign: 'center', padding: '60px' }}>
-              <p>Cargando servicios...</p>
-            </div>
-          ) : servicios.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px' }}>
-              <p>No hay servicios disponibles por el momento.</p>
-            </div>
-          ) : (
-            <motion.div
-              style={servicesGridStyle}
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-            >
-              {servicios.map((servicio, index) => (
-                <motion.div
-                  key={servicio.id}
-                  style={serviceCardStyle}
-                  variants={fadeInUp}
-                  whileHover={{ 
-                    y: -8, 
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-                  }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  onClick={() => navigate(`/servicios/${servicio.id}`)}
-                >
-                  <div style={serviceImageContainerStyle}>
-                    {servicio.imagen_url && !imageErrors[servicio.id] ? (
-                      <motion.img
-                        src={servicio.imagen_url}
-                        alt={servicio.nombre}
-                        style={serviceImageStyle}
-                        onError={() => handleImageError(servicio.id)}
-                        whileHover={{ scale: 1.08 }}
-                        transition={{ duration: 0.4 }}
-                      />
-                    ) : (
-                      <div style={serviceNoImageStyle}>
-                        <FontAwesomeIcon icon={faScissors} />
-                      </div>
-                    )}
-                  </div>
-                  <div style={serviceContentStyle}>
-                    <h3 style={serviceNameStyle}>{servicio.nombre}</h3>
-                    {servicio.descripcion && (
-                      <p style={serviceDescriptionStyle}>
-                        {servicio.descripcion}
-                      </p>
-                    )}
-                  
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <img
+              src="/servicios.jpeg"
+              alt="Servicios"
+              style={{
+                width: '100%',
+                maxWidth: '1000px', // controla proporción máxima
+                height: 'auto',
+                borderRadius: '16px',
+                objectFit: 'contain',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+              }}
+            />
+          </motion.div>
         </div>
       </section>
 
-      {/* Stats Section 
-      <section style={sectionStyle(colors.blancoHueso)}>
-        <div style={sectionContentStyle}>
-          <div style={statsGridStyle}>
-            {statsData.map((stat, index) => (
-              <StatItem key={stat.id} stat={stat} index={index} />
-            ))}
-          </div>
-        </div>
-      </section> */}
 
-      {/* CTA Section */}
+      {/* CTA Section 
       <section style={ctaStyle}>
         <motion.div
           style={sectionContentStyle}
@@ -528,7 +480,7 @@ export const Home: React.FC = () => {
             </Button>
           </motion.div>
         </motion.div>
-      </section>
+      </section> */}
     </div>
   );
 };

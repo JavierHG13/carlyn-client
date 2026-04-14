@@ -2,6 +2,7 @@ export interface Servicio {
   id: number;
   nombre: string;
   descripcion: string | null;
+  categoria: string | null;
   duracion: number;
   precio: number;
   imagen_url: string | null;
@@ -15,6 +16,7 @@ export interface Servicio {
 export interface CreateServicioData {
   nombre: string;
   descripcion?: string;
+  categoria: string | null;
   duracion: number;
   precio: number;
   imagen?: File;
@@ -23,6 +25,7 @@ export interface CreateServicioData {
 export interface UpdateServicioData {
   nombre?: string;
   descripcion?: string | null;
+  categoria: string | null;
   duracion?: number;
   precio?: number;
   activo?: boolean;

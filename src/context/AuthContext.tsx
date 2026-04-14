@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setIsAuthenticated(true);
 
             // Redirección según rol
-            navigate(user.rol === "Admin" ? "/admin" : "/inicio");
+            navigate(user.rol === "Admin" ? "/admin" : "/mis-citas");
 
         } catch (err: any) {
             setIsAuthenticated(false);

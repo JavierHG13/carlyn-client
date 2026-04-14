@@ -19,6 +19,11 @@ import { ProductList } from "./pages/public/productos/ProductList";
 import { ProductDetail } from "./pages/public/productos/ProductDetail";
 import { ServiciosPublicos } from "./pages/public/servicios/servicios";
 import { AgendarCita } from "./pages/public/servicios/AgendarCita";
+import { Nosotros } from "./pages/public/nosotros";
+import { AdminPrediccion } from './pages/admin/AdminPrediccion';
+
+
+import { MisCitas } from "./pages/cliente/MisCitas";
 // Dentro de Routes
 
 import './App.css'
@@ -42,6 +47,7 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/agendar-cita" element={<AgendarCita />} />
+            <Route path="/nostros" element={<Nosotros />} />
 
 
             <Route element={<ProtectedRoute requiredRole="Admin" />}>
@@ -52,7 +58,14 @@ function App() {
               <Route path="/admin/servicios" element={<AdminServicios />} />
               <Route path="/admin/citas" element={<AdminCitas />} />
               <Route path="/admin/barberos" element={<AdminBarberos />} />
-              
+              <Route path="/admin/prediccion" element={<AdminPrediccion />} />
+
+
+            </Route>
+
+            <Route element={<ProtectedRoute requiredRole="Cliente" />}>
+              <Route path="/mis-citas" element={<MisCitas />} />
+
             </Route>
 
           </Route>

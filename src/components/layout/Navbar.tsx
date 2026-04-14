@@ -347,15 +347,7 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                       Dashboard
                     </button>
 
-                    <button
-                      style={userMenuItemStyle}
-                      onClick={() => { navigate('/perfil'); setUserMenuOpen(false); }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F7FAFC'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <FontAwesomeIcon icon={faUser} style={{ color: colors.azulAcero }} />
-                      Mi Perfil
-                    </button>
+                   
 
                     {(hasRole('Cliente') || hasRole('Barbero')) && (
                       <button
@@ -372,15 +364,7 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                       </button>
                     )}
 
-                    <button
-                      style={userMenuItemStyle}
-                      onClick={() => { navigate('/configuracion'); setUserMenuOpen(false); }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F7FAFC'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <FontAwesomeIcon icon={faCog} style={{ color: colors.azulAcero }} />
-                      Configuración
-                    </button>
+                    
 
                     <div style={menuDividerStyle} />
 

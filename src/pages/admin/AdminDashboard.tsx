@@ -1,49 +1,50 @@
 // src/pages/admin/AdminDashboard.tsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCalendarCheck,
-  faDollarSign,
   faUsers,
   faUserTie,
+  faScissors,
   faClock,
-  faStar,
-  faChartLine,
-  faArrowUp,
-  faArrowDown,
   faEye,
   faCheckCircle,
   faTimesCircle,
-  faHourglassHalf
+  faHourglassHalf,
+  faArrowRight,
+  faPlus,
+  faChartLine,
+  faCog,
+  faDatabase,
+  faBox,
+  faCalendarAlt,
 } from '@fortawesome/free-solid-svg-icons';
 import { AdminLayout } from '../../layouts/AdminLayout';
-import { StatsCard } from '../../components/admin/StatsCard';
 import { colors } from '../../styles/colors';
 import api from '../../services/axios';
-interface DashboardStats {
-  totalAppointments: number;
-  totalRevenue: number;
-  totalClients: number;
-  activeBarbers: number;
-  appointmentsToday: number;
-  appointmentsPending: number;
-  averageRating: number;
-  popularServices: { name: string; count: number }[];
-}
 
-interface RecentAppointment {
-  id: string;
-  clientName: string;
-  service: string;
-  barber: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+interface CitaProxima {
+  id: number;
+  fecha: string;
+  hora_inicio: string;
+  cliente_nombre: string;
+  cliente_telefono: string;
+  servicio_nombre: string;
+  barbero_nombre: string;
+  estado_nombre: string;
 }
 
 export const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([]);
+  const navigate = useNavigate();
+  const [proximasCitas, setProximasCitas] = useState<CitaProxima[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    citasHoy: 0,
+    clientesTotales: 0,
+    barberosActivos: 0,
+    serviciosActivos: 0,
+  });
 
   useEffect(() => {
     loadDashboardData();
@@ -51,14 +52,27 @@ export const AdminDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      // Obtener estadísticas generales
-      const statsResponse = await api.get('/admin/usuarios/estadisticas/generales');
-      
-      // Obtener citas recientes (asumiendo que tienes un endpoint para esto)
-     //const appointmentsResponse = await api.get('/admin/citas/recientes');
-      
-      //setStats(statsResponse.data);
-      //setRecentAppointments(appointmentsResponse.data);
+      setLoading(true);
+
+      // Obtener citas próximas (próximos 7 días)
+      const citasResponse = await api.get('/citas/proximas?dias=7');
+      setProximasCitas(citasResponse.data.data || []);
+
+      // Obtener estadísticas básicas
+      const [clientesRes, barberosRes, serviciosRes, citasHoyRes] = await Promise.all([
+        api.get('/admin/usuarios?rol=Cliente&limit=1'),
+        api.get('/barbero'),
+        api.get('/servicios'),
+        api.get('/citas?fecha=' + new Date().toISOString().split('T')[0]),
+      ]);
+
+      setStats({
+        citasHoy: citasHoyRes.data?.data?.length || 0,
+        clientesTotales: clientesRes.data?.pagination?.total || 0,
+        barberosActivos: barberosRes.data?.data?.filter((b: any) => b.activo).length || 0,
+        serviciosActivos: serviciosRes.data?.servicios?.filter((s: any) => s.activo).length || 0,
+      });
+
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -66,15 +80,15 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { color: '#F59E0B', icon: faHourglassHalf, text: 'Pendiente' },
-      confirmed: { color: '#3B82F6', icon: faCheckCircle, text: 'Confirmada' },
-      completed: { color: '#10B981', icon: faCheckCircle, text: 'Completada' },
-      cancelled: { color: '#EF4444', icon: faTimesCircle, text: 'Cancelada' },
+  const getEstadoBadge = (estado: string) => {
+    const config: Record<string, { color: string; bg: string; icon: any; text: string }> = {
+      'Pendiente': { color: '#F59E0B', bg: '#FEF3C7', icon: faHourglassHalf, text: 'Pendiente' },
+      'Confirmada': { color: '#3B82F6', bg: '#DBEAFE', icon: faCheckCircle, text: 'Confirmada' },
+      'Completada': { color: '#10B981', bg: '#D1FAE5', icon: faCheckCircle, text: 'Completada' },
+      'Cancelada': { color: '#EF4444', bg: '#FEE2E2', icon: faTimesCircle, text: 'Cancelada' },
+      'No_asistio': { color: '#EF4444', bg: '#FEE2E2', icon: faTimesCircle, text: 'No Asistió' },
     };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const style = config[estado] || config['Pendiente'];
 
     return (
       <span style={{
@@ -83,23 +97,51 @@ export const AdminDashboard: React.FC = () => {
         gap: '4px',
         padding: '4px 8px',
         borderRadius: '20px',
-        fontSize: '12px',
+        fontSize: '11px',
         fontWeight: 500,
-        backgroundColor: `${config.color}15`,
-        color: config.color,
+        backgroundColor: style.bg,
+        color: style.color,
       }}>
-        <FontAwesomeIcon icon={config.icon} style={{ fontSize: '10px' }} />
-        {config.text}
+        <FontAwesomeIcon icon={style.icon} style={{ fontSize: '9px' }} />
+        {style.text}
       </span>
     );
   };
+
+  const formatFecha = (fecha: string) => {
+    const date = new Date(fecha);
+    const hoy = new Date();
+    const manana = new Date(hoy);
+    manana.setDate(hoy.getDate() + 1);
+
+    if (date.toDateString() === hoy.toDateString()) {
+      return 'Hoy';
+    } else if (date.toDateString() === manana.toDateString()) {
+      return 'Mañana';
+    } else {
+      return date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+  };
+
+  // Accesos rápidos
+  const quickAccess = [
+    { title: 'Ver Citas', icon: faCalendarCheck, path: '/admin/citas', color: '#3B82F6', bg: '#DBEAFE' },
+    { title: 'Clientes', icon: faUsers, path: '/admin/usuarios', color: '#10B981', bg: '#D1FAE5' },
+    { title: 'Barberos', icon: faUserTie, path: '/admin/barberos', color: '#8B5CF6', bg: '#EDE9FE' },
+    { title: 'Servicios', icon: faScissors, path: '/admin/servicios', color: '#F59E0B', bg: '#FEF3C7' },
+    {/* title: 'Productos', icon: faBox, path: '/admin/productos', color: '#EC4899', bg: '#FCE7F3' },
+    { title: 'Estadísticas', icon: faChartLine, path: '/admin/stats', color: '#06B6D4', bg: '#CFFAFE' */},
+    { title: 'Base de Datos', icon: faDatabase, path: '/admin/database', color: '#6B7280', bg: '#F3F4F6' },
+    { title: 'Configuración', icon: faCog, path: '/admin/configuracion', color: '#4B5563', bg: '#F3F4F6' },
+    { title: 'Predicciones', icon: faChartLine, path: '/admin/prediccion', color: '#06B6D4', bg: '#CFFAFE' },
+  ];
 
   const containerStyle: React.CSSProperties = {
     width: '100%',
   };
 
   const headerStyle: React.CSSProperties = {
-    marginBottom: '24px',
+    marginBottom: '28px',
   };
 
   const titleStyle: React.CSSProperties = {
@@ -107,39 +149,80 @@ export const AdminDashboard: React.FC = () => {
     fontWeight: 700,
     color: colors.negroSuave,
     marginBottom: '8px',
+    fontFamily: 'Playfair Display, serif',
   };
 
   const subtitleStyle: React.CSSProperties = {
     color: '#718096',
-    fontSize: '16px',
+    fontSize: '15px',
   };
 
   const statsGridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: '20px',
-    marginBottom: '30px',
+    marginBottom: '32px',
   };
 
-  const chartsRowStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
-    gap: '20px',
-    marginBottom: '30px',
+  const statCardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    padding: '20px',
+    border: '1px solid #EDF2F7',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   };
+
+  const statValueStyle: React.CSSProperties = {
+    fontSize: '32px',
+    fontWeight: 700,
+    color: colors.negroSuave,
+    marginBottom: '4px',
+  };
+
+  const statLabelStyle: React.CSSProperties = {
+    fontSize: '13px',
+    color: '#718096',
+  };
+
+  const quickAccessGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+    gap: '16px',
+    marginBottom: '32px',
+  };
+
+  const quickCardStyle = (bgColor: string, borderColor: string): React.CSSProperties => ({
+    backgroundColor: bgColor,
+    borderRadius: '14px',
+    padding: '16px',
+    cursor: 'pointer',
+    transition: 'transform 0.2s, box-shadow 0.2s',
+    border: `1px solid ${borderColor}`,
+    textAlign: 'center',
+  });
+
+  const quickIconStyle = (color: string): React.CSSProperties => ({
+    fontSize: '24px',
+    color: color,
+    marginBottom: '10px',
+  });
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '24px',
+    borderRadius: '16px',
+    padding: '20px',
     border: '1px solid #EDF2F7',
+    marginBottom: '24px',
   };
 
   const cardTitleStyle: React.CSSProperties = {
     fontSize: '18px',
     fontWeight: 600,
     color: colors.negroSuave,
-    marginBottom: '20px',
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   };
 
   const tableStyle: React.CSSProperties = {
@@ -149,46 +232,40 @@ export const AdminDashboard: React.FC = () => {
 
   const thStyle: React.CSSProperties = {
     textAlign: 'left',
-    padding: '12px',
+    padding: '12px 8px',
     borderBottom: `1px solid #EDF2F7`,
     color: '#718096',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 600,
+    textTransform: 'uppercase',
   };
 
   const tdStyle: React.CSSProperties = {
-    padding: '12px',
+    padding: '12px 8px',
     borderBottom: `1px solid #EDF2F7`,
-    fontSize: '14px',
+    fontSize: '13px',
+    verticalAlign: 'middle',
   };
 
-  const serviceItemStyle: React.CSSProperties = {
+  const emptyStateStyle: React.CSSProperties = {
+    textAlign: 'center',
+    padding: '40px',
+    color: '#718096',
+  };
+
+  const linkStyle: React.CSSProperties = {
+    color: colors.doradoClasico,
+    textDecoration: 'none',
+    fontSize: '13px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 0',
-    borderBottom: `1px solid #EDF2F7`,
+    gap: '6px',
   };
-
-  const serviceProgressStyle: React.CSSProperties = {
-    width: '100%',
-    height: '8px',
-    backgroundColor: '#EDF2F7',
-    borderRadius: '4px',
-    marginTop: '8px',
-  };
-
-  const serviceProgressFillStyle = (percentage: number): React.CSSProperties => ({
-    width: `${percentage}%`,
-    height: '100%',
-    backgroundColor: colors.doradoClasico,
-    borderRadius: '4px',
-  });
 
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ textAlign: 'center', padding: '50px' }}>
+        <div style={{ textAlign: 'center', padding: '60px' }}>
           Cargando dashboard...
         </div>
       </AdminLayout>
@@ -198,209 +275,133 @@ export const AdminDashboard: React.FC = () => {
   return (
     <AdminLayout>
       <div style={containerStyle}>
+        {/* Header */}
         <div style={headerStyle}>
           <h1 style={titleStyle}>Dashboard</h1>
-          <p style={subtitleStyle}>
-            Bienvenido de vuelta. Aquí tienes un resumen de tu barbería.
-          </p>
         </div>
 
         {/* Stats Cards */}
         <div style={statsGridStyle}>
-          <StatsCard
-            title="Citas Totales"
-            value={stats?.totalAppointments || 0}
-            icon={faCalendarCheck}
-            change={12.5}
-            color={colors.doradoClasico}
-          />
-          <StatsCard
-            title="Ingresos Totales"
-            value={`$${(stats?.totalRevenue || 0).toLocaleString()}`}
-            icon={faDollarSign}
-            change={8.2}
-            color="#10B981"
-          />
-          <StatsCard
-            title="Clientes Registrados"
-            value={stats?.totalClients || 0}
-            icon={faUsers}
-            change={15.3}
-            color="#3B82F6"
-          />
-          <StatsCard
-            title="Barberos Activos"
-            value={stats?.activeBarbers || 0}
-            icon={faUserTie}
-            change={0}
-            color="#8B5CF6"
-          />
-        </div>
-
-        {/* Charts Row */}
-        <div style={chartsRowStyle}>
-          {/* Citas de Hoy */}
-          <div style={cardStyle}>
-            <h3 style={cardTitleStyle}>Citas de Hoy</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
-              <div>
-                <div style={{ fontSize: '36px', fontWeight: 700, color: colors.negroSuave }}>
-                  {stats?.appointmentsToday || 0}
-                </div>
-                <div style={{ color: '#718096', fontSize: '14px' }}>Total citas hoy</div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>Completadas: 8</span>
-                  <span>Pendientes: {stats?.appointmentsPending || 0}</span>
-                </div>
-                <div style={serviceProgressStyle}>
-                  <div style={{ ...serviceProgressFillStyle(65), width: '65%' }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Próximas citas */}
-            <div>
-              <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#718096' }}>
-                PRÓXIMAS CITAS
-              </h4>
-              {recentAppointments.map((apt) => (
-                <div key={apt.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 0',
-                  borderBottom: '1px solid #EDF2F7',
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{apt.clientName}</div>
-                    <div style={{ fontSize: '13px', color: '#718096' }}>
-                      {apt.service} con {apt.barber}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 500 }}>{apt.time}</div>
-                    {getStatusBadge(apt.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div style={statCardStyle}>
+            <div style={statValueStyle}>{stats.citasHoy}</div>
+            <div style={statLabelStyle}>Citas de hoy</div>
           </div>
-
-          {/* Servicios Populares */}
-          <div style={cardStyle}>
-            <h3 style={cardTitleStyle}>Servicios Populares</h3>
-            <div>
-              {stats?.popularServices.map((service, index) => {
-                const total = stats.popularServices.reduce((acc, s) => acc + s.count, 0);
-                const percentage = (service.count / total) * 100;
-                
-                return (
-                  <div key={index} style={serviceItemStyle}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 500 }}>{service.name}</span>
-                        <span style={{ color: colors.doradoClasico, fontWeight: 600 }}>
-                          {service.count}
-                        </span>
-                      </div>
-                      <div style={serviceProgressStyle}>
-                        <div style={serviceProgressFillStyle(percentage)} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #EDF2F7' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '13px', color: '#718096' }}>Valoración Promedio</div>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: colors.negroSuave }}>
-                    {stats?.averageRating || 0}
-                    <span style={{ fontSize: '14px', color: '#718096', marginLeft: '4px' }}>/5</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '2px' }}>
-                  {[1,2,3,4,5].map((star) => (
-                    <FontAwesomeIcon
-                      key={star}
-                      icon={faStar}
-                      style={{
-                        color: star <= Math.round(stats?.averageRating || 0) ? colors.doradoClasico : '#CBD5E0',
-                        fontSize: '20px',
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div style={statCardStyle}>
+            <div style={statValueStyle}>{stats.clientesTotales}</div>
+            <div style={statLabelStyle}>Clientes registrados</div>
           </div>
         </div>
 
-        {/* Tabla de Citas Recientes */}
+        {/* Accesos Rápidos */}
         <div style={cardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={cardTitleStyle}>Citas Recientes</h3>
-            <button style={{
-              padding: '8px 16px',
-              backgroundColor: 'transparent',
-              border: `1px solid ${colors.grafito}`,
-              borderRadius: '8px',
-              color: colors.grafito,
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 500,
-            }}>
-              Ver Todas
-            </button>
+          <h3 style={cardTitleStyle}>
+            <span>Accesos Rápidos</span>
+          </h3>
+          <div style={quickAccessGridStyle}>
+            {quickAccess.map((item, idx) => (
+              <div
+                key={idx}
+                style={quickCardStyle(item.bg, `${item.color}30`)}
+                onClick={() => navigate(item.path)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <FontAwesomeIcon icon={item.icon} style={quickIconStyle(item.color)} />
+                <div style={{ fontSize: '13px', fontWeight: 500, color: colors.negroSuave }}>
+                  {item.title}
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Cliente</th>
-                <th style={thStyle}>Servicio</th>
-                <th style={thStyle}>Barbero</th>
-                <th style={thStyle}>Fecha</th>
-                <th style={thStyle}>Hora</th>
-                <th style={thStyle}>Estado</th>
-                <th style={thStyle}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentAppointments.slice(0, 5).map((apt) => (
-                <tr key={apt.id}>
-                  <td style={tdStyle}>
-                    <div style={{ fontWeight: 500 }}>{apt.clientName}</div>
-                  </td>
-                  <td style={tdStyle}>{apt.service}</td>
-                  <td style={tdStyle}>{apt.barber}</td>
-                  <td style={tdStyle}>{new Date().toLocaleDateString()}</td>
-                  <td style={tdStyle}>{apt.time}</td>
-                  <td style={tdStyle}>{getStatusBadge(apt.status)}</td>
-                  <td style={tdStyle}>
-                    <button style={{
-                      padding: '6px 12px',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: colors.azulAcero,
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}>
-                      <FontAwesomeIcon icon={faEye} />
-                      Ver
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Próximas Citas */}
+        <div style={cardStyle}>
+          <h3 style={cardTitleStyle}>
+            <span>
+              <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px', color: colors.doradoClasico }} />
+              Próximas Citas
+            </span>
+            <button
+              onClick={() => navigate('/admin/citas')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: colors.doradoClasico,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              Ver todas <FontAwesomeIcon icon={faArrowRight} style={{ fontSize: '10px' }} />
+            </button>
+          </h3>
+
+          {proximasCitas.length === 0 ? (
+            <div style={emptyStateStyle}>
+              No hay citas programadas en los próximos días
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Cliente</th>
+                    <th style={thStyle}>Servicio</th>
+                    <th style={thStyle}>Barbero</th>
+                    <th style={thStyle}>Fecha</th>
+                    <th style={thStyle}>Hora</th>
+                    <th style={thStyle}>Estado</th>
+                    <th style={thStyle}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {proximasCitas.slice(0, 8).map((cita) => (
+                    <tr key={cita.id}>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 500 }}>{cita.cliente_nombre}</div>
+                        <div style={{ fontSize: '11px', color: '#718096' }}>{cita.cliente_telefono}</div>
+                      </td>
+                      <td style={tdStyle}>{cita.servicio_nombre}</td>
+                      <td style={tdStyle}>{cita.barbero_nombre}</td>
+                      <td style={tdStyle}>
+                        <span style={{ fontWeight: 500 }}>{formatFecha(cita.fecha)}</span>
+                      </td>
+                      <td style={tdStyle}>{cita.hora_inicio.slice(0, 5)} hs</td>
+                      <td style={tdStyle}>{getEstadoBadge(cita.estado_nombre)}</td>
+                      <td style={tdStyle}>
+                        <button
+                          onClick={() => navigate(`/admin/citas/${cita.id}`)}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: '#F1F5F9',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faEye} style={{ fontSize: '11px' }} />
+                          Ver
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>
