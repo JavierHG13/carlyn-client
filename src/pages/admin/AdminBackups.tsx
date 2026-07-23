@@ -10,6 +10,9 @@ import {
     faEye,
     faSpinner,
     faCloud,
+    faEdit,
+    faPause,
+    faPlay,
     faCheckCircle,
     faCalendar,
     faTimesCircle,
@@ -141,6 +144,7 @@ export const AdminBackups: React.FC = () => {
         paddingBottom: '8px',
     };
 
+
     const tabStyle = (isActive: boolean): React.CSSProperties => ({
         padding: '10px 20px',
         borderRadius: '8px 8px 0 0',
@@ -206,6 +210,38 @@ export const AdminBackups: React.FC = () => {
         marginBottom: '16px',
     };
 
+    const tableContainerStyle: React.CSSProperties = {
+        overflowX: 'auto',
+        borderRadius: '12px',
+        border: '1px solid #EDF2F7',
+        backgroundColor: 'white',
+    };
+
+    const tableStyle: React.CSSProperties = {
+        width: '100%',
+        borderCollapse: 'collapse',
+        minWidth: '800px',
+    };
+
+    const thStyle: React.CSSProperties = {
+        textAlign: 'left',
+        padding: '14px 16px',
+        backgroundColor: '#F8FAFC',
+        borderBottom: '2px solid #EDF2F7',
+        color: '#475569',
+        fontSize: '13px',
+        fontWeight: 600,
+    };
+
+    const tdStyle: React.CSSProperties = {
+        padding: '14px 16px',
+        borderBottom: '1px solid #EDF2F7',
+        fontSize: '13px',
+        verticalAlign: 'middle',
+    };
+
+   
+
     if (loading && backups.length === 0) {
         return (
             <div style={{ textAlign: 'center', padding: '60px' }}>
@@ -217,7 +253,7 @@ export const AdminBackups: React.FC = () => {
     return (
 
         <div style={containerStyle}>
-             {/* <div style={headerStyle}>
+            {/* <div style={headerStyle}>
                 <h1 style={titleStyle}>
                     <FontAwesomeIcon icon={faDatabase} style={{ color: colors.doradoClasico }} />
                     Gestión de Backups
@@ -279,88 +315,124 @@ export const AdminBackups: React.FC = () => {
                 />
             )}
 
+            {/* Tab: Configuraciones */}
             {activeTab === 'configuraciones' && (
                 <div>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-                        <button style={buttonStyle(colors.doradoClasico)} onClick={handleCreateScheduledTask}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 600 }}>Configuraciones de Backups Automáticos</h3>
+                        <button
+                            style={buttonStyle(colors.doradoClasico)}
+                            onClick={handleCreateScheduledTask}
+                        >
                             <FontAwesomeIcon icon={faPlus} />
-                            Nueva Tarea Automatizada
+                            Nueva Configuración
                         </button>
                     </div>
 
                     {configs.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '12px' }}>
                             <FontAwesomeIcon icon={faCalendar} style={{ fontSize: '48px', opacity: 0.5 }} />
-                            <p>No hay tareas automatizadas configuradas</p>
+                            <p>No hay tareas configuradas</p>
                             <button style={buttonStyle(colors.doradoClasico)} onClick={handleCreateScheduledTask}>
                                 <FontAwesomeIcon icon={faPlus} />
                                 Crear primera tarea
                             </button>
                         </div>
                     ) : (
-                        configs.map((config) => (
-                            <div key={config.id} style={configCardStyle}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <h3 style={{ fontSize: '16px', fontWeight: 600 }}>{config.nombre}</h3>
-                                    <span style={{
-                                        padding: '4px 8px',
-                                        borderRadius: '20px',
-                                        fontSize: '11px',
-                                        backgroundColor: config.activo ? '#D1FAE5' : '#FEE2E2',
-                                        color: config.activo ? '#10B981' : '#EF4444',
-                                    }}>
-                                        {config.activo ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </div>
-
-                                <div style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
-                                    {config.frecuencia === 'Diario' && 'Diario a las '}
-                                    {config.frecuencia === 'Semanal' && `Semanal (${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][config.dia_semana]}) a las `}
-                                    {config.frecuencia === 'Mensual' && `Mensual (día ${config.dia_mes}) a las `}
-                                    {config.hora_ejecucion} • Retención: {config.retencion_dias} días
-                                </div>
-
-                                {config.proximo_respaldo && (
-                                    <div style={{ fontSize: '12px', color: '#10B981', marginBottom: '8px' }}>
-                                        <FontAwesomeIcon icon={faClock} style={{ marginRight: '4px' }} />
-                                        Próxima ejecución: {new Date(config.proximo_respaldo).toLocaleString()}
-                                    </div>
-                                )}
-
-                                {config.incluir_tablas && config.incluir_tablas.length > 0 && (
-                                    <div style={{ fontSize: '12px', color: '#718096', marginBottom: '12px' }}>
-                                        <strong>Tablas incluidas:</strong> {config.incluir_tablas.join(', ')}
-                                    </div>
-                                )}
-
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '12px' }}>
-                                    <button
-                                        style={actionButtonStyle(colors.azulAcero)}
-                                        onClick={() => {
-                                            setSelectedConfig(config);
-                                            setScheduledTaskModalOpen(true);
-                                        }}
-                                        title="Editar"
-                                    >
-                                        <FontAwesomeIcon icon={faEye} />
-                                    </button>
-                                    <button
-                                        style={actionButtonStyle(config.activo ? '#EF4444' : '#10B981')}
-                                        onClick={() => handleToggleConfig(config)}
-                                        title={config.activo ? 'Desactivar' : 'Activar'}
-                                    >
-                                        <FontAwesomeIcon icon={config.activo ? 'toggle-off' : 'toggle-on'} />
-                                    </button>
-                                    <button
-                                        style={actionButtonStyle('#EF4444')}
-                                        onClick={() => handleDeleteConfig(config)}
-                                        title="Eliminar"
-                                    >
-                                        <FontAwesomeIcon icon={faTrash} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                        <div style={tableContainerStyle}>
+                            <table style={tableStyle}>
+                                <thead>
+                                    <tr>
+                                        <th style={thStyle}>Nombre</th>
+                                        <th style={thStyle}>Frecuencia</th>
+                                        <th style={thStyle}>Próxima ejecución</th>
+                                        <th style={thStyle}>Retención</th>
+                                       
+                                        <th style={thStyle}>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {configs.map((config) => (
+                                        <tr key={config.id}>
+                                            <td style={tdStyle}>
+                                                <div style={{ fontWeight: 500 }}>{config.nombre}</div>
+                                                {config.incluir_tablas && config.incluir_tablas.length > 0 && (
+                                                    <div style={{ fontSize: '11px', color: '#718096', marginTop: '4px' }}>
+                                                        Tablas: {config.incluir_tablas.slice(0, 2).join(', ')}
+                                                        {config.incluir_tablas.length > 2 && ` +${config.incluir_tablas.length - 2}`}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td style={tdStyle}>
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    padding: '4px 10px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '11px',
+                                                    fontWeight: 500,
+                                                    backgroundColor:
+                                                        config.frecuencia === 'Diario' ? '#DBEAFE' :
+                                                            config.frecuencia === 'Semanal' ? '#D1FAE5' : '#FEF3C7',
+                                                    color:
+                                                        config.frecuencia === 'Diario' ? '#3B82F6' :
+                                                            config.frecuencia === 'Semanal' ? '#10B981' : '#F59E0B',
+                                                }}>
+                                                    {config.frecuencia === 'Diario' && 'Diario'}
+                                                    {config.frecuencia === 'Semanal' && `Semanal (${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][config.dia_semana]})`}
+                                                    {config.frecuencia === 'Mensual' && `Mensual (día ${config.dia_mes})`}
+                                                </span>
+                                                <div style={{ fontSize: '11px', color: '#718096', marginTop: '4px' }}>
+                                                    {config.hora_ejecucion.slice(0, 5)} hs
+                                                </div>
+                                            </td>
+                                            <td style={tdStyle}>
+                                                {config.proximo_respaldo ? (
+                                                    <div>
+                                                        <div style={{ fontWeight: 500 }}>
+                                                            {new Date(config.proximo_respaldo).toLocaleDateString()}
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', color: '#718096' }}>
+                                                            {new Date(config.proximo_respaldo).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: '#A0AEC0' }}>—</span>
+                                                )}
+                                            </td>
+                                            <td style={tdStyle}>
+                                                <div style={{ fontWeight: 500 }}>{config.retencion_dias} días</div>
+                                                <div style={{ fontSize: '11px', color: '#718096' }}>
+                                                    {config.total_respaldos || 0} backups realizados
+                                                </div>
+                                            </td>
+                                    
+                                            <td style={tdStyle}>
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    <button
+                                                        style={actionButtonStyle(colors.azulAcero)}
+                                                        onClick={() => {
+                                                            setSelectedConfig(config);
+                                                            setScheduledTaskModalOpen(true);
+                                                        }}
+                                                        title="Editar"
+                                                    >
+                                                        <FontAwesomeIcon icon={faEdit} />
+                                                    </button>
+                                                  
+                                                    <button
+                                                        style={actionButtonStyle('#EF4444')}
+                                                        onClick={() => handleDeleteConfig(config)}
+                                                        title="Eliminar"
+                                                    >
+                                                        <FontAwesomeIcon icon={faTrash} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             )}

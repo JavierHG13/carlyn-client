@@ -13,6 +13,7 @@ import {
   faDollarSign,
   faChevronLeft,
   faChevronRight,
+  faList,
 } from '@fortawesome/free-solid-svg-icons';
 import type { Cita } from '../../../types/citas';
 import { colors } from '../../../styles/colors';
@@ -26,7 +27,9 @@ interface CitasTableProps {
   onComplete: (cita: Cita) => void;
   currentPage: number;
   totalPages: number;
+  totalItems: number;
   onPageChange: (page: number) => void;
+  emptyMessage?: string;
 }
 
 export const CitasTable: React.FC<CitasTableProps> = ({
@@ -38,7 +41,9 @@ export const CitasTable: React.FC<CitasTableProps> = ({
   onComplete,
   currentPage,
   totalPages,
+  totalItems,
   onPageChange,
+  emptyMessage = 'No hay citas que coincidan con los filtros',
 }) => {
   const getEstadoBadge = (estado: string) => {
     const estadoConfig: Record<string, { bg: string; color: string; icon: any }> = {
@@ -47,6 +52,7 @@ export const CitasTable: React.FC<CitasTableProps> = ({
       'Completada': { bg: '#D1FAE5', color: '#10B981', icon: faCheckCircle },
       'Cancelada': { bg: '#FEE2E2', color: '#EF4444', icon: faTimesCircle },
       'No_asistio': { bg: '#FEE2E2', color: '#EF4444', icon: faTimesCircle },
+      'No asistio': { bg: '#FEE2E2', color: '#EF4444', icon: faTimesCircle },
     };
     
     const config = estadoConfig[estado] || { bg: '#E2E8F0', color: '#475569', icon: faClock };
@@ -64,10 +70,14 @@ export const CitasTable: React.FC<CitasTableProps> = ({
         color: config.color,
       }}>
         <FontAwesomeIcon icon={config.icon} style={{ fontSize: '10px' }} />
-        {estado}
+        {estado.replace('_', ' ')}
       </span>
     );
   };
+
+  const isTerminalEstado = (estado: string) => (
+    ['Completada', 'Cancelada', 'No_asistio', 'No asistio'].includes(estado)
+  );
 
   const formatFecha = (fecha: string) => {
     const date = new Date(fecha);
@@ -129,10 +139,28 @@ export const CitasTable: React.FC<CitasTableProps> = ({
 
   const paginationStyle: React.CSSProperties = {
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '16px',
+    marginTop: '20px',
+    flexWrap: 'wrap',
+  };
+
+  const resultadoStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    backgroundColor: '#F8FAFC',
+    borderRadius: '8px',
+    fontSize: '14px',
+    color: '#475569',
+  };
+
+  const paginationControlsStyle: React.CSSProperties = {
+    display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    marginTop: '20px',
   };
 
   const paginationButtonStyle = (disabled: boolean): React.CSSProperties => ({
@@ -172,108 +200,127 @@ export const CitasTable: React.FC<CitasTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {citas.map((cita) => (
-              <tr key={cita.id}>
-                <td style={tdStyle}>#{cita.id}</td>
-                <td style={tdStyle}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{cita.cliente_nombre}</div>
-                    <div style={{ fontSize: '12px', color: '#718096' }}>{cita.cliente_telefono}</div>
-                  </div>
-                </td>
-                <td style={tdStyle}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{cita.barbero_nombre}</div>
-                    <div style={{ fontSize: '12px', color: '#718096' }}>{cita.barbero_especialidad}</div>
-                  </div>
-                </td>
-                <td style={tdStyle}>
-                  <div>
-                    <div>{cita.servicio_nombre}</div>
-                    <div style={{ fontSize: '12px', color: '#718096' }}>{cita.servicio_duracion} min</div>
-                  </div>
-                </td>
-                <td style={tdStyle}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{formatFecha(cita.fecha)}</div>
-                    <div style={{ fontSize: '12px', color: '#718096' }}>{cita.hora_inicio.slice(0, 5)} - {cita.hora_fin.slice(0, 5)}</div>
-                  </div>
-                </td>
-                <td style={tdStyle}>
-                  <span style={{ fontWeight: 600, color: colors.doradoClasico }}>
-                    ${(cita.monto_pagado || cita.servicio_precio)}
-                  </span>
-                </td>
-                <td style={tdStyle}>
-                  {getEstadoBadge(cita.estado_nombre)}
-                </td>
-                <td style={tdStyle}>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      style={actionButtonStyle(colors.azulAcero)}
-                      onClick={() => onView(cita)}
-                      title="Ver detalles"
-                    >
-                      <FontAwesomeIcon icon={faEye} />
-                    </button>
-                    {cita.estado_nombre !== 'Completada' && cita.estado_nombre !== 'Cancelada' && (
-                      <>
-                        <button
-                          style={actionButtonStyle(colors.doradoClasico)}
-                          onClick={() => onEdit(cita)}
-                          title="Editar"
-                        >
-                          <FontAwesomeIcon icon={faEdit} />
-                        </button>
-                        <button
-                          style={actionButtonStyle('#10B981')}
-                          onClick={() => onComplete(cita)}
-                          title="Completar"
-                        >
-                          <FontAwesomeIcon icon={faCheckCircle} />
-                        </button>
-                      </>
-                    )}
-                    {cita.estado_nombre !== 'Cancelada' && cita.estado_nombre !== 'Completada' && (
-                      <button
-                        style={actionButtonStyle('#EF4444')}
-                        onClick={() => onCancel(cita)}
-                        title="Cancelar"
-                      >
-                        <FontAwesomeIcon icon={faTimesCircle} />
-                      </button>
-                    )}
-                  </div>
+            {citas.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '60px', color: '#718096' }}>
+                  <FontAwesomeIcon icon={faCalendarAlt} style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                  <p>{emptyMessage}</p>
                 </td>
               </tr>
-            ))}
+            ) : (
+              citas.map((cita) => (
+                <tr key={cita.id}>
+                  <td style={tdStyle}>#{cita.id}</td>
+                  <td style={tdStyle}>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{cita.cliente_nombre}</div>
+                      <div style={{ fontSize: '12px', color: '#718096' }}>{cita.cliente_telefono}</div>
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{cita.barbero_nombre}</div>
+                      <div style={{ fontSize: '12px', color: '#718096' }}>{cita.barbero_especialidad}</div>
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <div>
+                      <div>{cita.servicio_nombre}</div>
+                      <div style={{ fontSize: '12px', color: '#718096' }}>{cita.servicio_duracion} min</div>
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{formatFecha(cita.fecha)}</div>
+                      <div style={{ fontSize: '12px', color: '#718096' }}>{cita.hora_inicio.slice(0, 5)} - {cita.hora_fin.slice(0, 5)}</div>
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{ fontWeight: 600, color: colors.doradoClasico }}>
+                      ${(cita.monto_pagado || cita.servicio_precio)}
+                    </span>
+                  </td>
+                  <td style={tdStyle}>
+                    {getEstadoBadge(cita.estado_nombre)}
+                  </td>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', gap: '4px'}}>
+                      <button
+                        style={actionButtonStyle(colors.azulAcero)}
+                        onClick={() => onView(cita)}
+                        title="Ver detalles"
+                      >
+                        <FontAwesomeIcon icon={faEye} />
+                      </button>
+                      <button
+                        style={actionButtonStyle(colors.doradoClasico)}
+                        onClick={() => onEdit(cita)}
+                        title="Editar"
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      {!isTerminalEstado(cita.estado_nombre) && (
+                        <>
+                          <button
+                            style={actionButtonStyle('#10B981')}
+                            onClick={() => onComplete(cita)}
+                            title="Completar"
+                          >
+                            <FontAwesomeIcon icon={faCheckCircle} />
+                          </button>
+                        </>
+                      )}
+                      {!isTerminalEstado(cita.estado_nombre) && (
+                        <button
+                          style={actionButtonStyle('#EF4444')}
+                          onClick={() => onCancel(cita)}
+                          title="Cancelar"
+                        >
+                          <FontAwesomeIcon icon={faTimesCircle} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div style={paginationStyle}>
-          <button
-            style={paginationButtonStyle(currentPage === 1)}
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            <FontAwesomeIcon icon={faChevronLeft} />
-            Anterior
-          </button>
-          <span style={{ fontSize: '14px', color: '#718096' }}>
-            Página {currentPage} de {totalPages}
+      {/* Paginación con contador de registros */}
+      <div style={paginationStyle}>
+        <div style={resultadoStyle}>
+          <FontAwesomeIcon icon={faList} style={{ color: colors.doradoClasico }} />
+          <span>
+            Mostrando <strong>{citas.length}</strong> de <strong>{totalItems}</strong> citas
           </span>
-          <button
-            style={paginationButtonStyle(currentPage === totalPages)}
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Siguiente
-            <FontAwesomeIcon icon={faChevronRight} />
-          </button>
         </div>
-      )}
+
+        {totalPages > 1 && (
+          <div style={paginationControlsStyle}>
+            <button
+              style={paginationButtonStyle(currentPage === 1)}
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+              Anterior
+            </button>
+            <span style={{ fontSize: '14px', color: '#718096' }}>
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              style={paginationButtonStyle(currentPage === totalPages)}
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

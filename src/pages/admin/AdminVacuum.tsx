@@ -25,7 +25,7 @@ export const AdminVacuum: React.FC = () => {
   const [configs, setConfigs] = useState<VacuumConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'historial' | 'configuraciones'>('historial');
-  
+
   const [runModalOpen, setRunModalOpen] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [logModalOpen, setLogModalOpen] = useState(false);
@@ -40,12 +40,12 @@ export const AdminVacuum: React.FC = () => {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      
+
       const [vacuumsData, configsData] = await Promise.all([
         vacuumService.getAll({ limit: 50 }),
         vacuumService.getConfigs(),
       ]);
-      
+
       setVacuums(vacuumsData.vacuums || []);
       setConfigs(configsData.configuraciones || []);
     } catch (error) {
@@ -181,11 +181,41 @@ export const AdminVacuum: React.FC = () => {
     justifyContent: 'center',
   });
 
+  const tableContainerStyle: React.CSSProperties = {
+    overflowX: 'auto',
+    borderRadius: '12px',
+    border: '1px solid #EDF2F7',
+    backgroundColor: 'white',
+  };
+
+  const tableStyle: React.CSSProperties = {
+    width: '100%',
+    borderCollapse: 'collapse',
+    minWidth: '900px',
+  };
+
+  const thStyle: React.CSSProperties = {
+    textAlign: 'left',
+    padding: '14px 16px',
+    backgroundColor: '#F8FAFC',
+    borderBottom: '2px solid #EDF2F7',
+    color: '#475569',
+    fontSize: '13px',
+    fontWeight: 600,
+  };
+
+  const tdStyle: React.CSSProperties = {
+    padding: '14px 16px',
+    borderBottom: '1px solid #EDF2F7',
+    fontSize: '13px',
+    verticalAlign: 'middle',
+  };
+
   // Calcular estadísticas
   const totalEjecuciones = vacuums.length;
   const ultimaEjecucion = vacuums[0]?.created_at;
-  const promedioDuracion = vacuums.length > 0 
-    ? vacuums.reduce((acc, v) => acc + v.duracion_ms, 0) / vacuums.length 
+  const promedioDuracion = vacuums.length > 0
+    ? vacuums.reduce((acc, v) => acc + v.duracion_ms, 0) / vacuums.length
     : 0;
 
   const formatDuracion = (ms: number) => {
@@ -198,16 +228,19 @@ export const AdminVacuum: React.FC = () => {
 
   if (loading && vacuums.length === 0) {
     return (
-        <div style={{ textAlign: 'center', padding: '60px' }}>
-          <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '32px', color: colors.doradoClasico }} />
-        </div>
+      <div style={{ textAlign: 'center', padding: '60px' }}>
+        <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '32px', color: colors.doradoClasico }} />
+      </div>
     );
   }
 
+
+  
+
   return (
-      <div style={containerStyle}>
-       
-       {/* <div style={headerStyle}>
+    <div style={containerStyle}>
+
+      {/* <div style={headerStyle}>
           <h1 style={titleStyle}>
             <FontAwesomeIcon icon={faDatabase} style={{ color: colors.doradoClasico }} />
             VACUUM ANALYZE
@@ -232,161 +265,186 @@ export const AdminVacuum: React.FC = () => {
           </div>
         </div> */}
 
-        {/* Action Buttons */}
-        <div style={actionButtonsStyle}>
-          <button style={buttonStyle(colors.doradoClasico)} onClick={() => setRunModalOpen(true)}>
-            <FontAwesomeIcon icon={faPlus} />
-            Ejecutar VACUUM
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div style={tabsStyle}>
-          <div style={tabStyle(activeTab === 'historial')} onClick={() => setActiveTab('historial')}>
-            <FontAwesomeIcon icon={faHistory} style={{ marginRight: '8px' }} />
-            Historial de Ejecuciones
-          </div>
-          <div style={tabStyle(activeTab === 'configuraciones')} onClick={() => setActiveTab('configuraciones')}>
-            <FontAwesomeIcon icon={faCog} style={{ marginRight: '8px' }} />
-            Tareas Automatizadas
-          </div>
-        </div>
-
-        {/* Tab: Historial */}
-        {activeTab === 'historial' && (
-          <VacuumHistoryTable
-            vacuums={vacuums}
-            loading={loading}
-            onViewLog={(vacuum) => {
-              setSelectedVacuum(vacuum);
-              setLogModalOpen(true);
-            }}
-            onDelete={handleDeleteVacuum}
-          />
-        )}
-
-        {/* Tab: Configuraciones */}
-        {activeTab === 'configuraciones' && (
-          <div>
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button style={buttonStyle(colors.doradoClasico)} onClick={() => {
-                setSelectedConfig(null);
-                setConfigModalOpen(true);
-              }}>
-                <FontAwesomeIcon icon={faPlus} />
-                Agregar tarea
-              </button>
-            </div>
-
-            {configs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '12px' }}>
-                <FontAwesomeIcon icon={faCog} style={{ fontSize: '48px', opacity: 0.5 }} />
-                <p>No hay tareas configuradas</p>
-              </div>
-            ) : (
-              configs.map((config) => (
-                <div key={config.id} style={configCardStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 600 }}>{config.nombre}</h3>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '20px',
-                      fontSize: '11px',
-                      backgroundColor: config.activo ? '#D1FAE5' : '#FEE2E2',
-                      color: config.activo ? '#10B981' : '#EF4444',
-                    }}>
-                      {config.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </div>
-                  
-                  <div style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
-                    {config.frecuencia === 'Diario' && 'Diario a las '}
-                    {config.frecuencia === 'Semanal' && `Semanal (${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][config.dia_semana!]}) a las `}
-                    {config.frecuencia === 'Mensual' && `Mensual (día ${config.dia_mes}) a las `}
-                    {config.hora_ejecucion}
-                  </div>
-
-                  <div style={{ fontSize: '12px', color: '#718096', marginBottom: '8px' }}>
-                    <strong>Opciones:</strong> {config.vacuum_analyze && 'ANALYZE '}{config.vacuum_verbose && 'VERBOSE'}
-                    {!config.vacuum_analyze && !config.vacuum_verbose && 'Solo VACUUM'}
-                  </div>
-
-                  {config.tablas && config.tablas.length > 0 && (
-                    <div style={{ fontSize: '12px', color: '#718096', marginBottom: '12px' }}>
-                      <strong>Tablas:</strong> {config.tablas.join(', ')}
-                    </div>
-                  )}
-
-                  {config.proximo_vacuum && (
-                    <div style={{ fontSize: '12px', color: '#10B981', marginBottom: '8px' }}>
-                      <FontAwesomeIcon icon={faClock} style={{ marginRight: '4px' }} />
-                      Próxima ejecución: {new Date(config.proximo_vacuum).toLocaleString()}
-                    </div>
-                  )}
-
-                  <div style={{ fontSize: '12px', color: '#718096', marginBottom: '12px' }}>
-                    Total ejecuciones: {config.total_ejecuciones}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '12px' }}>
-                    <button
-                      style={actionButtonStyle(colors.azulAcero)}
-                      onClick={() => {
-                        setSelectedConfig(config);
-                        setConfigModalOpen(true);
-                      }}
-                      title="Editar"
-                    >
-                      <FontAwesomeIcon icon={faEye} />
-                    </button>
-                    <button
-                      style={actionButtonStyle(config.activo ? '#EF4444' : '#10B981')}
-                      onClick={() => handleToggleConfig(config)}
-                      title={config.activo ? 'Desactivar' : 'Activar'}
-                    >
-                      <FontAwesomeIcon icon={config.activo ? 'toggle-off' : 'toggle-on'} />
-                    </button>
-                    <button
-                      style={actionButtonStyle('#EF4444')}
-                      onClick={() => handleDeleteConfig(config)}
-                      title="Eliminar"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Modals */}
-        <RunVacuumModal
-          isOpen={runModalOpen}
-          onClose={() => setRunModalOpen(false)}
-          onSuccess={loadAllData}
-        />
-
-        <VacuumConfigModal
-          isOpen={configModalOpen}
-          onClose={() => {
-            setConfigModalOpen(false);
-            setSelectedConfig(null);
-          }}
-          onSuccess={loadAllData}
-          config={selectedConfig}
-          loading={modalLoading}
-        />
-
-        <LogViewerModal
-          isOpen={logModalOpen}
-          onClose={() => {
-            setLogModalOpen(false);
-            setSelectedVacuum(null);
-          }}
-          logUrl={selectedVacuum?.log_url || null}
-          logFileName={`vacuum_${selectedVacuum?.id || ''}`}
-        />
+      {/* Action Buttons */}
+      <div style={actionButtonsStyle}>
+        <button style={buttonStyle(colors.doradoClasico)} onClick={() => setRunModalOpen(true)}>
+          Ejecutar Vacuum
+        </button>
       </div>
+
+      {/* Tabs */}
+      <div style={tabsStyle}>
+        <div style={tabStyle(activeTab === 'historial')} onClick={() => setActiveTab('historial')}>
+          <FontAwesomeIcon icon={faHistory} style={{ marginRight: '8px' }} />
+          Historial de Ejecuciones
+        </div>
+        <div style={tabStyle(activeTab === 'configuraciones')} onClick={() => setActiveTab('configuraciones')}>
+          <FontAwesomeIcon icon={faCog} style={{ marginRight: '8px' }} />
+          Tareas
+        </div>
+      </div>
+
+      {/* Tab: Historial */}
+      {activeTab === 'historial' && (
+        <VacuumHistoryTable
+          vacuums={vacuums}
+          loading={loading}
+          onViewLog={(vacuum) => {
+            setSelectedVacuum(vacuum);
+            setLogModalOpen(true);
+          }}
+          onDelete={handleDeleteVacuum}
+        />
+      )}
+
+      {/* Tab: Configuraciones */}
+      {/* Tab: Configuraciones */}
+      {activeTab === 'configuraciones' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 600 }}>Tareas Automatizadas</h3>
+            <button style={buttonStyle(colors.doradoClasico)} onClick={() => {
+              setSelectedConfig(null);
+              setConfigModalOpen(true);
+            }}>
+              <FontAwesomeIcon icon={faPlus} />
+              Agregar tarea
+            </button>
+          </div>
+
+          {configs.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '12px' }}>
+              <FontAwesomeIcon icon={faCog} style={{ fontSize: '48px', opacity: 0.5 }} />
+              <p>No hay tareas configuradas</p>
+            </div>
+          ) : (
+            <div style={tableContainerStyle}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Nombre</th>
+                    <th style={thStyle}>Frecuencia</th>
+                    <th style={thStyle}>Próxima ejecución</th>
+      
+                    <th style={thStyle}>Ejecuciones</th>
+                   
+                    <th style={thStyle}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {configs.map((config) => (
+                    <tr key={config.id}>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 500 }}>{config.nombre}</div>
+                        {config.tablas && config.tablas.length > 0 && (
+                          <div style={{ fontSize: '11px', color: '#718096', marginTop: '4px' }}>
+                            Tablas: {config.tablas.slice(0, 2).join(', ')}
+                            {config.tablas.length > 2 && ` +${config.tablas.length - 2}`}
+                          </div>
+                        )}
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: 500,
+                      
+                        }}>
+                          {config.frecuencia}
+                          
+                        </span>
+                  
+                      </td>
+                      <td style={tdStyle}>
+                        {config.proximo_vacuum ? (
+                          <div>
+                            <div style={{ fontWeight: 500 }}>
+                              {new Date(config.proximo_vacuum).toLocaleDateString()}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#718096' }}>
+                              {new Date(config.proximo_vacuum).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#A0AEC0' }}>—</span>
+                        )}
+                      </td>
+                    
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 500 }}>{config.total_ejecuciones || 0}</div>
+                        <div style={{ fontSize: '11px', color: '#718096' }}>
+                          {config.ultimo_estado === 'Exitoso' && 'Último exitoso'}
+                          {config.ultimo_estado === 'Fallido' && 'Último fallido'}
+                          {!config.ultimo_estado && '—'}
+                        </div>
+                      </td>
+
+                      <td style={tdStyle}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            style={actionButtonStyle(colors.azulAcero)}
+                            onClick={() => {
+                              setSelectedConfig(config);
+                              setConfigModalOpen(true);
+                            }}
+                            title="Editar"
+                          >
+                            <FontAwesomeIcon icon={faEye} />
+                          </button>
+                          <button
+                            style={actionButtonStyle(config.activo ? '#EF4444' : '#10B981')}
+                            onClick={() => handleToggleConfig(config)}
+                            title={config.activo ? 'Desactivar' : 'Activar'}
+                          >
+                            <FontAwesomeIcon icon={config.activo ? 'toggle-off' : 'toggle-on'} />
+                          </button>
+                          <button
+                            style={actionButtonStyle('#EF4444')}
+                            onClick={() => handleDeleteConfig(config)}
+                            title="Eliminar"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modals */}
+      <RunVacuumModal
+        isOpen={runModalOpen}
+        onClose={() => setRunModalOpen(false)}
+        onSuccess={loadAllData}
+      />
+
+      <VacuumConfigModal
+        isOpen={configModalOpen}
+        onClose={() => {
+          setConfigModalOpen(false);
+          setSelectedConfig(null);
+        }}
+        onSuccess={loadAllData}
+        config={selectedConfig}
+        loading={modalLoading}
+      />
+
+      <LogViewerModal
+        isOpen={logModalOpen}
+        onClose={() => {
+          setLogModalOpen(false);
+          setSelectedVacuum(null);
+        }}
+        logUrl={selectedVacuum?.log_url || null}
+        logFileName={`vacuum_${selectedVacuum?.id || ''}`}
+      />
+    </div>
   );
 };

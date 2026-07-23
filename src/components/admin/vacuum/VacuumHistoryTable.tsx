@@ -6,7 +6,6 @@ import {
   faCheckCircle,
   faTimesCircle,
   faClock,
-  faEye,
 } from '@fortawesome/free-solid-svg-icons';
 import type { Vacuum } from '../../../types/vacuum';
 import { colors } from '../../../styles/colors';
@@ -94,7 +93,7 @@ export const VacuumHistoryTable: React.FC<VacuumHistoryTableProps> = ({
   const tableStyle: React.CSSProperties = {
     width: '100%',
     borderCollapse: 'collapse',
-    minWidth: '900px',
+    minWidth: '700px',
   };
 
   const thStyle: React.CSSProperties = {
@@ -122,10 +121,7 @@ export const VacuumHistoryTable: React.FC<VacuumHistoryTableProps> = ({
       <table style={tableStyle}>
         <thead>
           <tr>
-            <th style={thStyle}>ID</th>
             <th style={thStyle}>Tipo</th>
-            <th style={thStyle}>Tablas</th>
-            <th style={thStyle}>Opciones</th>
             <th style={thStyle}>Duración</th>
             <th style={thStyle}>Fecha</th>
             <th style={thStyle}>Estado</th>
@@ -135,7 +131,7 @@ export const VacuumHistoryTable: React.FC<VacuumHistoryTableProps> = ({
         <tbody>
           {vacuums.map((vacuum) => (
             <tr key={vacuum.id}>
-              <td style={tdStyle}>#{vacuum.id}</td>
+      
               <td style={tdStyle}>
                 <span style={{
                   padding: '2px 8px',
@@ -146,22 +142,6 @@ export const VacuumHistoryTable: React.FC<VacuumHistoryTableProps> = ({
                   color: vacuum.tipo === 'Manual' ? '#3B82F6' : '#10B981',
                 }}>
                   {vacuum.tipo}
-                </span>
-              </td>
-              <td style={tdStyle}>
-                {vacuum.tablas.length === 0 ? (
-                  <span style={{ color: '#718096' }}>Todas las tablas</span>
-                ) : (
-                  <span title={vacuum.tablas.join(', ')}>
-                    {vacuum.tablas.length} tabla(s)
-                  </span>
-                )}
-              </td>
-              <td style={tdStyle}>
-                <span style={{ fontSize: '11px' }}>
-                  {vacuum.vacuum_analyze && 'ANALYZE '}
-                  {vacuum.vacuum_verbose && 'VERBOSE'}
-                  {!vacuum.vacuum_analyze && !vacuum.vacuum_verbose && 'Solo VACUUM'}
                 </span>
               </td>
               <td style={tdStyle}>{formatDuracion(vacuum.duracion_ms)}</td>

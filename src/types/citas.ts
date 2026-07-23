@@ -36,6 +36,11 @@ export interface Cita {
   // Método de pago
   metodo_pago_id: number | null;
   metodo_pago_nombre: string | null;
+
+  // Local
+  local_id?: number | null;
+  local_nombre?: string | null;
+  local_direccion?: string | null;
 }
 
 export interface CitaFilters {
@@ -46,8 +51,10 @@ export interface CitaFilters {
   estadoId?: number;
   barberoId?: number;
   clienteId?: number;
+  localId?: number;
   page?: number;
   limit?: number;
+  scope?: 'proximas' | 'historial';
 }
 
 export interface PaginatedCitasResponse {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -25,22 +25,18 @@ ChartJS.register(
 );
 
 interface PrediccionChartProps {
-    historico: Array<{ mes: string; total: number }>;
-    proyeccion: Array<{ mes: string; Nt: number }>;
+    historico: Array<{ periodo: string; total: number }>;
+    proyeccion: Array<{ periodo: string; Nt: number }>;
 }
 
 export const PrediccionChart: React.FC<PrediccionChartProps> = ({ historico, proyeccion }) => {
-    const chartRef = useRef<any>(null);
-
-    // Preparar datos para el gráfico
     const labels = [
-        ...historico.map(h => h.mes),
-        ...proyeccion.map(p => p.mes)
+        ...historico.map(h => h.periodo),
+        ...proyeccion.map(p => p.periodo)
     ];
 
     const datosReales = historico.map(h => h.total);
     
-    // Datos proyectados (con null para los meses históricos)
     const datosProyectados = [
         ...new Array(historico.length - 1).fill(null),
         historico[historico.length - 1]?.total || null,
@@ -60,11 +56,11 @@ export const PrediccionChart: React.FC<PrediccionChartProps> = ({ historico, pro
                 pointBackgroundColor: '#3B82F6',
                 pointBorderColor: 'white',
                 pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
+                pointRadius: 5,
+                pointHoverRadius: 7,
             },
             {
-                label: 'Proyección',
+                label: 'Proyección mensual',
                 data: datosProyectados,
                 borderColor: colors.doradoClasico,
                 backgroundColor: 'rgba(212, 175, 55, 0.05)',
@@ -74,8 +70,8 @@ export const PrediccionChart: React.FC<PrediccionChartProps> = ({ historico, pro
                 pointBackgroundColor: colors.doradoClasico,
                 pointBorderColor: 'white',
                 pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
+                pointRadius: 5,
+                pointHoverRadius: 7,
             },
         ],
     };
@@ -93,6 +89,11 @@ export const PrediccionChart: React.FC<PrediccionChartProps> = ({ historico, pro
             },
             tooltip: {
                 callbacks: {
+                    title: (tooltipItems: any) => {
+                        const index = tooltipItems[0].dataIndex;
+                        const label = labels[index];
+                        return `Mes: ${label}`;
+                    },
                     label: (context: any) => {
                         const label = context.dataset.label || '';
                         const value = context.raw;
@@ -113,6 +114,9 @@ export const PrediccionChart: React.FC<PrediccionChartProps> = ({ historico, pro
                 grid: {
                     color: '#E2E8F0',
                 },
+                ticks: {
+                    stepSize: 1,
+                },
             },
             x: {
                 title: {
@@ -123,13 +127,20 @@ export const PrediccionChart: React.FC<PrediccionChartProps> = ({ historico, pro
                 grid: {
                     display: false,
                 },
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    font: {
+                        size: 11,
+                    },
+                },
             },
         },
     };
 
     return (
         <div style={{ height: '400px', width: '100%' }}>
-            <Line ref={chartRef} data={data} options={options} />
+            <Line data={data} options={options} />
         </div>
     );
 };

@@ -17,13 +17,7 @@ import {
     faCheckCircle,
     faTimesCircle,
     faTag,
-    faBarcode,
-    faDollarSign,
-    faPackage,
-    faAlertCircle,
     faSync,
-    faFileCsv,
-    faInfoCircle,
     faChevronLeft,
     faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';

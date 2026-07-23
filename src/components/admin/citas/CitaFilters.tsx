@@ -22,12 +22,16 @@ interface CitaFiltersProps {
   }) => void;
   barberos?: Array<{ id: number; nombre: string }>;
   estados?: Array<{ id: number; nombre: string }>;
+  estadoIdValue?: number;
+  onEstadoChange?: (estadoId: number) => void;
 }
 
 export const CitaFilters: React.FC<CitaFiltersProps> = ({
   onFilterChange,
   barberos = [],
   estados = [],
+  estadoIdValue,
+  onEstadoChange,
 }) => {
   const [q, setQ] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -37,6 +41,12 @@ export const CitaFilters: React.FC<CitaFiltersProps> = ({
   const [barberoId, setBarberoId] = useState<number>(0);
   const [showFilters, setShowFilters] = useState(false);
   const [debouncedQ, setDebouncedQ] = useState(q);
+
+  useEffect(() => {
+    if (estadoIdValue !== undefined && estadoIdValue !== estadoId) {
+      setEstadoId(estadoIdValue);
+    }
+  }, [estadoIdValue]);
 
   // Debounce para búsqueda
   useEffect(() => {
@@ -64,6 +74,7 @@ export const CitaFilters: React.FC<CitaFiltersProps> = ({
     setFechaInicio('');
     setFechaFin('');
     setEstadoId(0);
+    onEstadoChange?.(0);
     setBarberoId(0);
   };
 
@@ -230,7 +241,11 @@ export const CitaFilters: React.FC<CitaFiltersProps> = ({
           <select
             style={selectStyle}
             value={estadoId}
-            onChange={(e) => setEstadoId(Number(e.target.value))}
+            onChange={(e) => {
+              const nextEstadoId = Number(e.target.value);
+              setEstadoId(nextEstadoId);
+              onEstadoChange?.(nextEstadoId);
+            }}
           >
             <option value={0}>Todos los estados</option>
             {estados.map(estado => (

@@ -19,6 +19,9 @@ export interface Barbero {
   calificacion: number;
   activo: boolean;
   created_at: string;
+  local_id?: number | null;
+  local_nombre?: string | null;
+  local_direccion?: string | null;
   horarios: Horario[];
 }
 
@@ -26,6 +29,7 @@ export interface BarberoFormData {
   especialidad: string;
   años_experiencia: number;
   descripcion?: string;
+  local_id?: number | null;
 }
 
 export interface ResumenBarbero {
@@ -50,6 +54,7 @@ export interface CitaBarbero {
   precio: number;
   metodo_pago: string | null;
   monto_pagado: number;
+  local_nombre?: string | null;
   cliente_nombre: string;
   cliente_telefono: string;
   cliente_foto?: string;

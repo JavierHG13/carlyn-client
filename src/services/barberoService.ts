@@ -16,22 +16,26 @@ export const barberoService = {
     return barbero;
   },
 
+  getPerfil: async (): Promise<Barbero> => {
+    const response = await api.get('/barbero/perfil');
+    return response.data.data;
+  },
+
   // Obtener resumen de un barbero
-  getResumen: async (barberoId: number): Promise<ResumenBarbero> => {
-    const response = await api.get(`/barbero/${barberoId}/resumen`);
+  getResumen: async (): Promise<ResumenBarbero> => {
+    const response = await api.get('/barbero/resumen');
     return response.data.data;
   },
 
   // Obtener citas próximas de un barbero
-  getProximasCitas: async (barberoId: number, limit?: number): Promise<CitaBarbero[]> => {
+  getProximasCitas: async (limit?: number): Promise<CitaBarbero[]> => {
     const params = limit ? `?limit=${limit}` : '';
-    const response = await api.get(`/barbero/${barberoId}/citas/proximas${params}`);
+    const response = await api.get(`/barbero/citas/proximas${params}`);
     return response.data.data;
   },
 
   // Obtener historial de citas
   getHistorialCitas: async (
-    barberoId: number,
     params?: { estado?: string; fecha_desde?: string; fecha_hasta?: string; page?: number; limit?: number }
   ): Promise<HistorialCitasResponse> => {
     const queryParams = new URLSearchParams();
@@ -41,31 +45,41 @@ export const barberoService = {
     if (params?.page) queryParams.append('page', String(params.page));
     if (params?.limit) queryParams.append('limit', String(params.limit));
     
-    const response = await api.get(`/barbero/${barberoId}/citas/historial?${queryParams.toString()}`);
+    const response = await api.get(`/barbero/citas/historial?${queryParams.toString()}`);
     return response.data;
   },
 
   // Actualizar perfil del barbero
-  updatePerfil: async (barberoId: number, data: BarberoFormData): Promise<Barbero> => {
-    const response = await api.put(`/barbero/${barberoId}`, data);
+  updatePerfil: async (data: BarberoFormData): Promise<Barbero> => {
+    const response = await api.put('/barbero', data);
+    return response.data.data;
+  },
+
+  updatePerfilAdmin: async (barberoId: number, data: BarberoFormData): Promise<Barbero> => {
+    const response = await api.patch(`/barbero/${barberoId}/perfil`, data);
+    return response.data.data;
+  },
+
+  assignLocal: async (barberoId: number, localId: number): Promise<Barbero> => {
+    const response = await api.patch(`/barbero/${barberoId}/local`, { localId });
     return response.data.data;
   },
 
   // Obtener horarios
-  getHorarios: async (barberoId: number) => {
-    const response = await api.get(`/barbero/${barberoId}/horarios`);
+  getHorarios: async () => {
+    const response = await api.get('/barbero/horarios');
     return response.data.data;
   },
 
   // Actualizar horarios
-  updateHorarios: async (barberoId: number, horarios: any[]) => {
-    const response = await api.put(`/barbero/${barberoId}/horarios`, { horarios });
+  updateHorarios: async (horarios: any[]) => {
+    const response = await api.put('/barbero/horarios', { horarios });
     return response.data.data;
   },
 
   // Activar/Desactivar un día
-  toggleDiaHorario: async (barberoId: number, diaSemana: number, activo: boolean) => {
-    const response = await api.patch(`/barbero/${barberoId}/horarios/${diaSemana}/toggle`, { activo });
+  toggleDiaHorario: async (diaSemana: number, activo: boolean) => {
+    const response = await api.patch(`/barbero/horarios/${diaSemana}/toggle`, { activo });
     return response.data.data;
   },
 

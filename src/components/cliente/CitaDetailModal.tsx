@@ -178,8 +178,10 @@ export const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClos
                         <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: colors.doradoClasico }} />
                         Ubicación
                     </h4>
-                    <p style={{ margin: 0 }}>Barbería Carlyn</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#718096' }}>Av. Principal 123, Santiago</p>
+                    <p style={{ margin: 0 }}>{cita.local_nombre || 'Barbería Carlyn'}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#718096' }}>
+                        {cita.local_direccion || 'Dirección por confirmar'}
+                    </p>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>

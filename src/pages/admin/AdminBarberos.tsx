@@ -14,6 +14,7 @@ import { BarberoModal } from '../../components/admin/barberos/barberoModal';
 import { BarberoDetailsModal } from '../../components/admin/barberos/BarberoDetailsModal';
 import { BarberoStatsModal } from '../../components/admin/barberos/BarberoStatsModal';
 import { barberoService } from '../../services/barberoService';
+import { localService, type Local } from '../../services/localService';
 import type { Barbero, BarberoFormData } from '../../types/barbero';
 import { colors } from '../../styles/colors';
 
@@ -30,10 +31,12 @@ export const AdminBarberos: React.FC = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [locales, setLocales] = useState<Local[]>([]);
   const itemsPerPage = 10;
 
   useEffect(() => {
     loadBarberos();
+    loadLocales();
   }, []);
 
   useEffect(() => {
@@ -49,6 +52,15 @@ export const AdminBarberos: React.FC = () => {
       console.error('Error loading barberos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLocales = async () => {
+    try {
+      const data = await localService.getAll(true);
+      setLocales(data);
+    } catch (error) {
+      console.error('Error loading locales:', error);
     }
   };
 
@@ -78,7 +90,11 @@ export const AdminBarberos: React.FC = () => {
     if (!selectedBarbero) return;
     try {
       setModalLoading(true);
-      await barberoService.updatePerfil(selectedBarbero.barbero_id, data);
+      const { local_id, ...perfilData } = data;
+      await barberoService.updatePerfilAdmin(selectedBarbero.barbero_id, perfilData);
+      if (local_id && local_id !== selectedBarbero.local_id) {
+        await barberoService.assignLocal(selectedBarbero.barbero_id, local_id);
+      }
       await loadBarberos();
       setModalOpen(false);
       setSelectedBarbero(null);
@@ -255,6 +271,7 @@ export const AdminBarberos: React.FC = () => {
           }}
           onSave={handleUpdateBarbero}
           barbero={selectedBarbero}
+          locales={locales}
           loading={modalLoading}
         />
 

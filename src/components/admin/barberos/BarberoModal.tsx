@@ -12,6 +12,7 @@ import {
   faInfoCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import type { Barbero, BarberoFormData } from '../../../types/barbero';
+import type { Local } from '../../../services/localService';
 import { colors } from '../../../styles/colors';
 
 interface BarberoModalProps {
@@ -19,6 +20,7 @@ interface BarberoModalProps {
   onClose: () => void;
   onSave: (data: BarberoFormData) => Promise<void>;
   barbero: Barbero | null;
+  locales?: Local[];
   loading?: boolean;
 }
 
@@ -34,6 +36,7 @@ const schema = yup.object({
   descripcion: yup.string()
     .max(500, 'La descripción no puede exceder 500 caracteres')
     .nullable(),
+  local_id: yup.number().nullable().optional(),
 });
 
 export const BarberoModal: React.FC<BarberoModalProps> = ({
@@ -41,6 +44,7 @@ export const BarberoModal: React.FC<BarberoModalProps> = ({
   onClose,
   onSave,
   barbero,
+  locales = [],
   loading = false,
 }) => {
   const {
@@ -58,11 +62,13 @@ export const BarberoModal: React.FC<BarberoModalProps> = ({
       setValue('especialidad', barbero.especialidad);
       setValue('años_experiencia', barbero.años_experiencia);
       setValue('descripcion', barbero.descripcion || '');
+      setValue('local_id', barbero.local_id || null);
     } else {
       reset({
         especialidad: '',
         años_experiencia: 0,
         descripcion: '',
+        local_id: null,
       });
     }
   }, [barbero, isOpen, setValue, reset]);
@@ -238,6 +244,23 @@ export const BarberoModal: React.FC<BarberoModalProps> = ({
               {...register('descripcion')}
               placeholder="Descripción de la especialidad del barbero..."
             />
+          </div>
+
+          <div style={formGroupStyle}>
+            <label style={labelStyle}>Sucursal asignada</label>
+            <select
+              style={inputStyle(false)}
+              {...register('local_id', {
+                setValueAs: (value) => value ? Number(value) : null,
+              })}
+            >
+              <option value="">Sin sucursal</option>
+              {locales.map((local) => (
+                <option key={local.id} value={local.id}>
+                  {local.nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={modalFooterStyle}>

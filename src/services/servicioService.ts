@@ -21,11 +21,6 @@ export const servicioService = {
     return response.data.servicios;
   },
 
-  getById: async (id: number): Promise<Servicio> => {
-    const response = await api.get(`/servicios/${id}`);
-    return response.data.servicio;
-  },
-
   // Obtener servicios activos (público)
   getActive: async (): Promise<Servicio[]> => {
     const response = await api.get("/servicios/activos");

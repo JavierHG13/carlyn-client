@@ -33,7 +33,7 @@ interface VerifyEmailData {
 interface AuthContextValue {
     user: User | null;
     loading: boolean;
-    login: (credentials: { correoElectronico: string; contrasena: string }) => Promise<void>;
+    login: (credentials: { correoElectronico: string; contrasena: string }, redirectTo?: string) => Promise<void>;
     loginOAuth: (accessToken: string) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     // 🔐 Login normal
-    const login = async (credentials: { correoElectronico: string; contrasena: string }) => {
+    const login = async (credentials: { correoElectronico: string; contrasena: string }, redirectTo?: string) => {
         setLoading(true);
         setErrors(undefined);
 
@@ -95,12 +95,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             localStorage.setItem("jwt", token);
 
-            console.log()
             setUser(user);
             setIsAuthenticated(true);
 
-            // Redirección según rol
-            navigate(user.rol === "Admin" ? "/admin" : "/mis-citas");
+            navigate(
+                redirectTo ||
+                (user.rol === "Admin" ? "/admin" : user.rol === "Barbero" ? "/barbero" : "/mis-citas")
+            );
 
         } catch (err: any) {
             setIsAuthenticated(false);

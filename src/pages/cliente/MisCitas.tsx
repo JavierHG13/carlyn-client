@@ -10,25 +10,28 @@ import {
     faTimesCircle,
     faSpinner,
     faCalendarAlt,
-    faFilter,
 } from '@fortawesome/free-solid-svg-icons';
 import { misCitasService } from '../../services/misCitasService';
-import  type { CitaCliente, ResumenCitas } from '../../types/misCitas';
+import { paymentService } from '../../services/paymentService';
+import type { CitaCliente } from '../../types/misCitas';
 import { CitaCard } from '../../components/cliente/CitaCard';
 import { CitaDetailModal } from '../../components/cliente/CitaDetailModal';
 import { CancelarCitaModal } from '../../components/cliente/CancelarCitaModal';
+import { ReagendarCitaModal } from '../../components/cliente/ReagendarCitaModal';
 import { colors } from '../../styles/colors';
 
 export const MisCitas: React.FC = () => {
     const navigate = useNavigate();
     const [citas, setCitas] = useState<CitaCliente[]>([]);
-    const [resumen, setResumen] = useState<ResumenCitas | null>(null);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>('todas');
     const [selectedCita, setSelectedCita] = useState<CitaCliente | null>(null);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
     const [cancelLoading, setCancelLoading] = useState(false);
+    const [rescheduleLoading, setRescheduleLoading] = useState(false);
+    const [payingCitaId, setPayingCitaId] = useState<number | null>(null);
 
     useEffect(() => {
         loadCitas();
@@ -38,9 +41,12 @@ export const MisCitas: React.FC = () => {
         try {
             setLoading(true);
             const data = await misCitasService.getAll();
-            setCitas(data);
-            const resumenData = await misCitasService.getResumen();
-            setResumen(resumenData);
+            const ordered = [...data].sort((a, b) => {
+                const dateA = new Date(`${a.fecha}T${a.hora_inicio}`).getTime();
+                const dateB = new Date(`${b.fecha}T${b.hora_inicio}`).getTime();
+                return dateB - dateA;
+            });
+            setCitas(ordered);
         } catch (error) {
             console.error('Error loading citas:', error);
         } finally {
@@ -60,6 +66,35 @@ export const MisCitas: React.FC = () => {
             alert('Error al cancelar la cita');
         } finally {
             setCancelLoading(false);
+        }
+    };
+
+    const handleReagendar = async (fecha: string, horaInicio: string) => {
+        if (!selectedCita) return;
+        setRescheduleLoading(true);
+        try {
+            await misCitasService.reagendar(selectedCita.id, { fecha, horaInicio });
+            await loadCitas();
+            setRescheduleModalOpen(false);
+            setSelectedCita(null);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Error al reagendar la cita');
+        } finally {
+            setRescheduleLoading(false);
+        }
+    };
+
+    const handlePagarAnticipo = async (cita: CitaCliente) => {
+        setPayingCitaId(cita.id);
+        try {
+            const preference = await paymentService.createExistingAppointmentPreference(cita.id);
+            const checkoutUrl = preference.initPoint || preference.sandboxInitPoint;
+            if (!checkoutUrl) throw new Error('Mercado Pago no devolvió una URL de pago');
+            window.location.href = checkoutUrl;
+        } catch (error: any) {
+            alert(error.response?.data?.message || error.message || 'No pudimos iniciar el pago del anticipo.');
+        } finally {
+            setPayingCitaId(null);
         }
     };
 
@@ -86,75 +121,80 @@ export const MisCitas: React.FC = () => {
 
     const citasFiltradas = filtrarCitas();
 
-    const containerStyle: React.CSSProperties = {
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '40px 20px',
+    const pageStyle: React.CSSProperties = {
         minHeight: '100vh',
         backgroundColor: colors.blancoHueso,
+        padding: '38px 20px 54px',
+    };
+
+    const containerStyle: React.CSSProperties = {
+        maxWidth: '1040px',
+        margin: '0 auto',
     };
 
     const headerStyle: React.CSSProperties = {
-        textAlign: 'center',
-        marginBottom: '40px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        gap: '18px',
+        marginBottom: '22px',
+        flexWrap: 'wrap',
     };
 
     const titleStyle: React.CSSProperties = {
-        fontSize: '36px',
+        fontSize: '34px',
         fontWeight: 700,
         color: colors.negroSuave,
-        marginBottom: '8px',
+        margin: '0 0 6px',
         fontFamily: 'Playfair Display, serif',
-    };
-
-    const statsGridStyle: React.CSSProperties = {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '16px',
-        marginBottom: '32px',
-    };
-
-    const statCardStyle = (color: string): React.CSSProperties => ({
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '20px',
-        textAlign: 'center',
-        border: `1px solid ${color}20`,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-    });
-
-    const statValueStyle: React.CSSProperties = {
-        fontSize: '32px',
-        fontWeight: 700,
-        marginBottom: '4px',
     };
 
     const filtersStyle: React.CSSProperties = {
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '12px',
-        marginBottom: '32px',
-        justifyContent: 'center',
+        gap: '8px',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        border: '1px solid #E5E7EB',
+        borderRadius: 8,
+        padding: '12px',
+        marginBottom: '18px',
+        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
     };
 
     const filterButtonStyle = (isActive: boolean): React.CSSProperties => ({
-        padding: '10px 20px',
-        borderRadius: '30px',
+        padding: '9px 14px',
+        borderRadius: 8,
         border: `1px solid ${isActive ? colors.doradoClasico : '#E2E8F0'}`,
         backgroundColor: isActive ? colors.doradoClasico : 'white',
         color: isActive ? 'white' : '#475569',
         cursor: 'pointer',
         fontSize: '14px',
-        fontWeight: 500,
+        fontWeight: 600,
         transition: 'all 0.2s',
     });
 
     const emptyStateStyle: React.CSSProperties = {
         textAlign: 'center',
-        padding: '60px',
+        padding: '52px',
         backgroundColor: 'white',
-        borderRadius: '24px',
+        borderRadius: 8,
+        border: '1px solid #E5E7EB',
         color: '#718096',
+    };
+
+    const primaryButtonStyle: React.CSSProperties = {
+        border: 'none',
+        borderRadius: 8,
+        backgroundColor: colors.doradoClasico,
+        color: 'white',
+        padding: '12px 16px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
     };
 
     const fadeInUp = {
@@ -164,16 +204,19 @@ export const MisCitas: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={containerStyle}>
+            <div style={pageStyle}>
+                <div style={containerStyle}>
                 <div style={{ textAlign: 'center', padding: '80px' }}>
                     <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '48px', color: colors.doradoClasico }} />
                     <p style={{ marginTop: '20px', color: colors.azulAcero }}>Cargando tus citas...</p>
+                </div>
                 </div>
             </div>
         );
     }
 
     return (
+        <main style={pageStyle}>
         <div style={containerStyle}>
             <motion.div
                 initial="hidden"
@@ -181,38 +224,20 @@ export const MisCitas: React.FC = () => {
                 variants={fadeInUp}
                 style={headerStyle}
             >
-                <h1 style={titleStyle}>
-                    Mis Citas
-                </h1>
-                <p style={{ color: '#718096' }}>
-                    Gestiona y da seguimiento a tus citas agendadas
-                </p>
-            </motion.div>
-
-            {/* Estadísticas */}
-            {resumen && (
-                <div style={statsGridStyle}>
-                    <div style={statCardStyle('#3B82F6')}>
-                        <div style={{ ...statValueStyle, color: '#3B82F6' }}>{resumen.total}</div>
-                        <div style={{ fontSize: '13px', color: '#718096' }}>Total</div>
-                    </div>
-                    <div style={statCardStyle('#F59E0B')}>
-                        <div style={{ ...statValueStyle, color: '#F59E0B' }}>{resumen.pendientes + resumen.confirmadas}</div>
-                        <div style={{ fontSize: '13px', color: '#718096' }}>Activas</div>
-                    </div>
-                    <div style={statCardStyle('#10B981')}>
-                        <div style={{ ...statValueStyle, color: '#10B981' }}>{resumen.completadas}</div>
-                        <div style={{ fontSize: '13px', color: '#718096' }}>Completadas</div>
-                    </div>
-                    <div style={statCardStyle('#EF4444')}>
-                        <div style={{ ...statValueStyle, color: '#EF4444' }}>{resumen.canceladas}</div>
-                        <div style={{ fontSize: '13px', color: '#718096' }}>Canceladas</div>
-                    </div>
+                <div>
+                    <h1 style={titleStyle}>Mis citas</h1>
+                    <p style={{ color: '#718096', margin: 0 }}>
+                        Revisa tus reservas, consulta detalles y administra cambios cuando estén disponibles.
+                    </p>
                 </div>
-            )}
+            </motion.div>
 
             {/* Filtros */}
             <div style={filtersStyle}>
+                <div style={{ color: colors.azulAcero, fontSize: 14, fontWeight: 700, padding: '0 4px' }}>
+                    Historial
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <button style={filterButtonStyle(filter === 'todas')} onClick={() => setFilter('todas')}>
                     <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '6px' }} />
                     Todas
@@ -233,6 +258,7 @@ export const MisCitas: React.FC = () => {
                     <FontAwesomeIcon icon={faTimesCircle} style={{ marginRight: '6px' }} />
                     Canceladas
                 </button>
+                </div>
             </div>
 
             {/* Lista de citas */}
@@ -250,13 +276,7 @@ export const MisCitas: React.FC = () => {
                         onClick={() => navigate('/servicios')}
                         style={{
                             marginTop: '20px',
-                            padding: '12px 24px',
-                            backgroundColor: colors.doradoClasico,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            fontWeight: 500,
+                            ...primaryButtonStyle,
                         }}
                     >
                         Ver servicios
@@ -279,6 +299,12 @@ export const MisCitas: React.FC = () => {
                                 setSelectedCita(cita);
                                 setDetailModalOpen(true);
                             }}
+                            onReagendar={(cita) => {
+                                setSelectedCita(cita);
+                                setRescheduleModalOpen(true);
+                            }}
+                            onPagarAnticipo={handlePagarAnticipo}
+                            paying={payingCitaId === cita.id}
                         />
                     ))}
                 </div>
@@ -309,6 +335,18 @@ export const MisCitas: React.FC = () => {
                 } : undefined}
                 loading={cancelLoading}
             />
+
+            <ReagendarCitaModal
+                isOpen={rescheduleModalOpen}
+                onClose={() => {
+                    setRescheduleModalOpen(false);
+                    setSelectedCita(null);
+                }}
+                onConfirm={handleReagendar}
+                cita={selectedCita}
+                loading={rescheduleLoading}
+            />
         </div>
+        </main>
     );
 };

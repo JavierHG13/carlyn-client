@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash, faEnvelope, faLock, faGoogle } from '@fortawesome/free-solid-svg-icons';
-import { faGoogle as faGoogleBrand } from '@fortawesome/free-brands-svg-icons';
+import { faEye, faEyeSlash, faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../styles/colors';
 import { useGoogleLogin } from '@react-oauth/google';
-
 
 interface LoginFormInputs {
   email: string;
@@ -26,11 +24,12 @@ const schema = yup.object({
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginOAuth, errors: authErrors, loading } = useAuth();
+  const location = useLocation();
+  const { login, loginOAuth, errors: authErrors, loading, isAuthenticated , user} = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [localError, setLocalError] = useState('');
+  const redirectTo = (location.state as { redirectTo?: string } | null)?.redirectTo;
 
   const {
     register,
@@ -40,6 +39,21 @@ export const Login: React.FC = () => {
   } = useForm<LoginFormInputs>({
     resolver: yupResolver(schema),
   });
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else if (user?.rol === 'Admin') {
+        navigate('/admin');
+      } else if (user?.rol === 'Barbero') {
+        navigate('/barbero');
+      } else {
+        navigate('/mis-citas');
+      }
+    }
+  }, [isAuthenticated, navigate, redirectTo, user?.rol]);
 
   // Cargar email guardado al montar el componente
   useEffect(() => {
@@ -61,12 +75,11 @@ export const Login: React.FC = () => {
     }
 
     try {
-      await login({ correoElectronico: data.email, contrasena: data.password });
+        await login({ correoElectronico: data.email, contrasena: data.password }, redirectTo);
     } catch (err) {
-      console.log(err)
+      console.log(err);
     }
   };
-
 
   const handleGoogleLogin = useGoogleLogin({
     scope: 'email profile',
@@ -81,28 +94,28 @@ export const Login: React.FC = () => {
     },
   });
 
-  
   const containerStyle: React.CSSProperties = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: '100vh',
-    backgroundColor: colors.blancoHueso,
+    minHeight: 'calc(100vh - 96px)',
+    background: 'linear-gradient(180deg, #FFFFFF 0%, #F6F4EF 100%)',
     padding: '20px',
   };
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: 'white',
-    padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    padding: '42px 46px',
+    borderRadius: '18px',
+    border: '1px solid #E7EBF2',
+    boxShadow: '0 24px 70px rgba(15, 23, 42, 0.10)',
     width: '100%',
-    maxWidth: '450px',
+    maxWidth: '470px',
   };
 
   const titleStyle: React.CSSProperties = {
     textAlign: 'center',
-    fontSize: '28px',
+    fontSize: '30px',
     fontWeight: 700,
     color: colors.negroSuave,
     marginBottom: '8px',
@@ -112,19 +125,19 @@ export const Login: React.FC = () => {
   const subtitleStyle: React.CSSProperties = {
     textAlign: 'center',
     color: colors.azulAcero,
-    marginBottom: '32px',
-    fontSize: '14px',
+    marginBottom: '34px',
+    fontSize: '15px',
   };
 
   const formGroupStyle: React.CSSProperties = {
-    marginBottom: '20px',
+    marginBottom: '22px',
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
     marginBottom: '8px',
     fontSize: '14px',
-    fontWeight: 500,
+    fontWeight: 700,
     color: colors.azulAcero,
   };
 
@@ -135,17 +148,19 @@ export const Login: React.FC = () => {
 
   const inputStyle = (hasError: boolean): React.CSSProperties => ({
     width: '100%',
-    padding: '12px 40px 12px 40px',
-    border: `1px solid ${hasError ? '#EF4444' : '#E2E8F0'}`,
-    borderRadius: '8px',
-    fontSize: '14px',
+    height: '52px',
+    padding: '0 42px 0 42px',
+    border: `1px solid ${hasError ? '#EF4444' : '#D9E1EC'}`,
+    borderRadius: '12px',
+    fontSize: '15px',
     outline: 'none',
-    transition: 'border-color 0.2s',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    backgroundColor: '#FFFFFF',
   });
 
   const inputIconStyle: React.CSSProperties = {
     position: 'absolute',
-    left: '12px',
+    left: '15px',
     top: '50%',
     transform: 'translateY(-50%)',
     color: '#A0AEC0',
@@ -154,7 +169,7 @@ export const Login: React.FC = () => {
 
   const togglePasswordStyle: React.CSSProperties = {
     position: 'absolute',
-    right: '12px',
+    right: '15px',
     top: '50%',
     transform: 'translateY(-50%)',
     cursor: 'pointer',
@@ -174,7 +189,8 @@ export const Login: React.FC = () => {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    marginBottom: '16px',
+    marginBottom: '18px',
+    justifyContent: 'space-between',
     flexWrap: 'wrap',
   };
 
@@ -192,32 +208,34 @@ export const Login: React.FC = () => {
 
   const buttonStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px',
+    height: '52px',
     backgroundColor: colors.doradoClasico,
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontSize: '16px',
-    fontWeight: 500,
+    fontWeight: 800,
     cursor: 'pointer',
-    transition: 'opacity 0.2s',
+    transition: 'opacity 0.2s, transform 0.2s',
   };
 
   const googleButtonStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px',
-    backgroundColor: 'white',
-    color: colors.negroSuave,
-    border: `1px solid #E2E8F0`,
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: 500,
+    height: '54px',
+    backgroundColor: '#FFFFFF',
+    color: '#3C4043',
+    border: '1px solid #DADCE0',
+    borderRadius: '12px',
+    fontSize: '15px',
+    fontWeight: 700,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '12px',
+    gap: '14px',
     marginTop: '12px',
+    transition: 'all 0.2s',
+    boxShadow: '0 1px 2px rgba(60, 64, 67, 0.08)',
   };
 
   const errorAlertStyle: React.CSSProperties = {
@@ -234,17 +252,28 @@ export const Login: React.FC = () => {
     display: 'flex',
     alignItems: 'center',
     textAlign: 'center',
-    margin: '20px 0',
+    margin: '22px 0',
     color: '#A0AEC0',
     fontSize: '12px',
   };
 
   const footerStyle: React.CSSProperties = {
-    marginTop: '24px',
+    marginTop: '26px',
     textAlign: 'center',
     fontSize: '13px',
     color: '#718096',
   };
+
+  // Si está cargando la autenticación, mostrar loading
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{ color: colors.azulAcero }}>Cargando...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={containerStyle}>
@@ -310,8 +339,6 @@ export const Login: React.FC = () => {
             </Link>
           </div>
 
-
-
           <button type="submit" style={buttonStyle} disabled={loading}>
             {loading ? 'Cargando...' : 'Iniciar Sesión'}
           </button>
@@ -323,11 +350,24 @@ export const Login: React.FC = () => {
           <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #E2E8F0' }} />
         </div>
 
-        <button style={googleButtonStyle} onClick={() => handleGoogleLogin()} disabled={loading}>
-          <FontAwesomeIcon icon={faGoogleBrand} />
-          Google
+        <button 
+          style={googleButtonStyle} 
+          onClick={() => handleGoogleLogin()} 
+          disabled={loading}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#F8FAFC';
+            e.currentTarget.style.borderColor = '#C8CCD0';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(60, 64, 67, 0.16)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'white';
+            e.currentTarget.style.borderColor = '#DADCE0';
+            e.currentTarget.style.boxShadow = '0 1px 2px rgba(60, 64, 67, 0.08)';
+          }}
+        >
+          <GoogleMark />
+          <span>Continuar con Google</span>
         </button>
-
 
         <div style={footerStyle}>
           ¿No tienes cuenta?{' '}
@@ -337,3 +377,24 @@ export const Login: React.FC = () => {
     </div>
   );
 };
+
+const GoogleMark: React.FC = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+    <path
+      fill="#4285F4"
+      d="M19.6 10.23c0-.68-.06-1.34-.18-1.96H10v3.71h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.31 2.98-7.28Z"
+    />
+    <path
+      fill="#34A853"
+      d="M10 20c2.7 0 4.96-.89 6.62-2.42l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.6 0-4.8-1.76-5.59-4.12H1.07v2.59A10 10 0 0 0 10 20Z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M4.41 11.9a6.01 6.01 0 0 1 0-3.8V5.51H1.07a10 10 0 0 0 0 8.98l3.34-2.59Z"
+    />
+    <path
+      fill="#EA4335"
+      d="M10 3.98c1.47 0 2.79.51 3.83 1.5l2.86-2.86A9.6 9.6 0 0 0 10 0 10 10 0 0 0 1.07 5.51L4.41 8.1C5.2 5.74 7.4 3.98 10 3.98Z"
+    />
+  </svg>
+);

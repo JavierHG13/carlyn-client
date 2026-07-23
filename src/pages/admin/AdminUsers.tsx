@@ -160,6 +160,10 @@ export const AdminUsers: React.FC = () => {
           setDetailsModalOpen(true);
         }}
         totalUsers={pagination.total}
+        onCreate={() => {
+          setSelectedUser(null);
+          setModalOpen(true);
+        }}
         onSearch={(term) => setFilters(prev => ({ ...prev, search: term, page: 1 }))}
         onFilterRole={(role) => setFilters(prev => ({ ...prev, rol: role, page: 1 }))}
         onPageChange={handlePageChange}

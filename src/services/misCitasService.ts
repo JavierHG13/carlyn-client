@@ -8,13 +8,10 @@ export const misCitasService = {
         return response.data.data;
     },
 
-    // Obtener resumen de citas
-    getResumen: async (): Promise<ResumenCitas> => {
-        const citas = await misCitasService.getAll();
-        
+    buildResumen: (citas: CitaCliente[]): ResumenCitas => {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
-        
+
         const proximas = citas.filter(c => {
             const fechaCita = new Date(c.fecha);
             return fechaCita >= hoy && (c.estado_nombre === 'Pendiente' || c.estado_nombre === 'Confirmada');
@@ -33,6 +30,18 @@ export const misCitasService = {
     // Cancelar cita
     cancelar: async (citaId: number, motivo?: string): Promise<void> => {
         await api.delete(`/citas/${citaId}`, { data: { motivo } });
+    },
+
+    reagendar: async (citaId: number, data: { fecha: string; horaInicio: string; notas?: string | null }): Promise<CitaCliente> => {
+        const response = await api.put(`/citas/${citaId}`, data);
+        return response.data.data;
+    },
+
+    getHorariosDisponibles: async (barberoId: number, fecha: string): Promise<Array<{ hora: string; disponible?: boolean; ocupado?: boolean }>> => {
+        const response = await api.get('/citas/horarios-disponibles', {
+            params: { barberoId, fecha },
+        });
+        return response.data.disponibles || [];
     },
 
     // Obtener cita por ID

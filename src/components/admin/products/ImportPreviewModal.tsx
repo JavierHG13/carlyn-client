@@ -411,7 +411,7 @@ export const ImportPreviewModal: React.FC<ImportPreviewModalProps> = ({
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle} style={{ width: '40px' }}></th>
+                <th style={{ ...thStyle, width: '40px' }}></th>
                 <th style={thStyle}>#</th>
                 <th style={thStyle}>Nombre</th>
                 <th style={thStyle}>SKU</th>

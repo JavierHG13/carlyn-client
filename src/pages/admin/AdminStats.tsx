@@ -10,6 +10,7 @@ import {
     faArrowTrendUp,
     faRotateRight,
     faGaugeHigh,
+    faChartSimple,
     faMemory,
     faMicrochip,
     faCheckCircle,
@@ -253,6 +254,37 @@ export const AdminStats: React.FC = () => {
         color: '#1E293B',
     };
 
+    // Estilos para la gráfica de barras
+    const chartContainerStyle: React.CSSProperties = {
+        marginTop: '16px',
+    };
+
+    const barItemStyle: React.CSSProperties = {
+        marginBottom: '16px',
+    };
+
+    const barLabelStyle: React.CSSProperties = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '6px',
+        fontSize: '13px',
+    };
+
+    const barBackgroundStyle: React.CSSProperties = {
+        height: '8px',
+        backgroundColor: '#E2E8F0',
+        borderRadius: '4px',
+        overflow: 'hidden',
+    };
+
+    const barFillStyle = (percentage: number): React.CSSProperties => ({
+        width: `${Math.min(percentage, 100)}%`,
+        height: '100%',
+        backgroundColor: percentage > 70 ? '#10B981' : percentage > 40 ? colors.doradoClasico : '#F59E0B',
+        borderRadius: '4px',
+        transition: 'width 0.3s ease',
+    });
+
     if (loading && !server) {
         return (
             <div style={{ textAlign: 'center', padding: '80px' }}>
@@ -262,22 +294,14 @@ export const AdminStats: React.FC = () => {
         );
     }
 
+    // Calcular el porcentaje de uso de índices para cada tabla
+    const topIndexTables = [...indexes]
+        .sort((a, b) => b.index_usage_pct - a.index_usage_pct)
+        .slice(0, 8)
+        .filter(t => t.index_usage_pct > 0);
+
     return (
         <div style={containerStyle}>
-            {/* Header */}
-            <div style={headerStyle}>
-                <h1 style={titleStyle}>
-                    <FontAwesomeIcon icon={faChartLine} style={{ color: colors.doradoClasico }} />
-                    Salud del Sistema
-                </h1>
-                <button style={refreshButtonStyle} onClick={loadAllStats}>
-                    <FontAwesomeIcon icon={faRotateRight} />
-                    Actualizar
-                    <span style={{ fontSize: '11px', marginLeft: '8px', opacity: 0.7 }}>
-                        {lastUpdate.toLocaleTimeString()}
-                    </span>
-                </button>
-            </div>
 
             {/* Resumen General */}
             {server && transactions && (
@@ -300,11 +324,6 @@ export const AdminStats: React.FC = () => {
                             {getHealthText(transactions.cache_hit_ratio, true)}
                         </div>
                     </div>
-                    <div style={metricCardStyle(getHealthColor(server.connections.active / server.connections.max * 100, false))}>
-                        <FontAwesomeIcon icon={faPlug} style={{ fontSize: '32px', color: getHealthColor(server.connections.active / server.connections.max * 100, false), marginBottom: '8px' }} />
-                        <div style={{ fontSize: '28px', fontWeight: 700 }}>{server.connections.active}/{server.connections.max}</div>
-                        <div style={{ fontSize: '13px', color: '#718096' }}>Conexiones Activas</div>
-                    </div>
                 </div>
             )}
 
@@ -312,35 +331,24 @@ export const AdminStats: React.FC = () => {
             {alerts && (
                 <div style={cardStyle}>
                     <h3 style={cardTitleStyle}>
-                        <FontAwesomeIcon icon={faExclamationTriangle} style={{ color: '#F59E0B' }} />
+                        <FontAwesomeIcon icon={faExclamationTriangle} style={{ color: 'green' }} />
                         Estado General
                     </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                        <div style={{ padding: '12px', backgroundColor: '#F8FAFC', borderRadius: '10px' }}>
-                            <div style={{ fontSize: '12px', color: '#64748B' }}>Conflictos Detectados</div>
-                            <div style={{ fontSize: '24px', fontWeight: 600, color: alerts.conflicts > 0 ? '#EF4444' : '#10B981' }}>
-                                {alerts.conflicts}
-                            </div>
+
+                    <div style={{ padding: '12px', backgroundColor: '#F8FAFC', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '12px', color: '#64748B' }}>Actividad de la Base de Datos</div>
+                        <div style={{ fontSize: '16px', fontWeight: 500 }}>
+                            {formatNumber(transactions?.rows_inserted || 0)} insertados
                         </div>
-                        <div style={{ padding: '12px', backgroundColor: '#F8FAFC', borderRadius: '10px' }}>
-                            <div style={{ fontSize: '12px', color: '#64748B' }}>Archivos Temporales</div>
-                            <div style={{ fontSize: '24px', fontWeight: 600 }}>{alerts.temp_file_count}</div>
-                            <div style={{ fontSize: '12px', color: '#718096' }}>Tamaño: {alerts.temp_size}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 500 }}>
+                            {formatNumber(transactions?.rows_updated || 0)} actualizados
                         </div>
-                        <div style={{ padding: '12px', backgroundColor: '#F8FAFC', borderRadius: '10px' }}>
-                            <div style={{ fontSize: '12px', color: '#64748B' }}>Actividad de la Base de Datos</div>
-                            <div style={{ fontSize: '16px', fontWeight: 500 }}>
-                                📝 {formatNumber(transactions?.rows_inserted || 0)} insertados
-                            </div>
-                            <div style={{ fontSize: '16px', fontWeight: 500 }}>
-                                ✏️ {formatNumber(transactions?.rows_updated || 0)} actualizados
-                            </div>
-                            <div style={{ fontSize: '16px', fontWeight: 500 }}>
-                                🗑️ {formatNumber(transactions?.rows_deleted || 0)} eliminados
-                            </div>
+                        <div style={{ fontSize: '16px', fontWeight: 500 }}>
+                            {formatNumber(transactions?.rows_deleted || 0)} eliminados
                         </div>
                     </div>
                 </div>
+
             )}
 
             {/* Tablas que necesitan mantenimiento */}
@@ -384,41 +392,6 @@ export const AdminStats: React.FC = () => {
                 </div>
             )}
 
-            {/* Consultas Lentas */}
-            {slowQueries.length > 0 && (
-                <div style={cardStyle}>
-                    <h3 style={cardTitleStyle}>
-                        <FontAwesomeIcon icon={faClock} />
-                        Consultas que Pueden Mejorar
-                    </h3>
-                    <div style={tableContainerStyle}>
-                        <table style={tableStyle}>
-                            <thead>
-                                <tr>
-                                    <th style={thStyle}>Consulta</th>
-                                    <th style={thStyle}>Veces ejecutada</th>
-                                    <th style={thStyle}>Tiempo promedio</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {slowQueries.slice(0, 5).map((query, idx) => (
-                                    <tr key={idx}>
-                                        <td style={tdStyle}>
-                                            <code style={{ fontSize: '11px' }}>{query.query_preview}</code>
-                                        </td>
-                                        <td style={tdStyle}>{formatNumber(query.calls)}</td>
-                                        <td style={tdStyle}>
-                                            <span style={{ color: query.avg_ms > 100 ? '#EF4444' : '#F59E0B' }}>
-                                                {query.avg_ms} ms
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
 
             {/* Tamaño de Tablas */}
             {tables.length > 0 && (
@@ -457,24 +430,12 @@ export const AdminStats: React.FC = () => {
                         <FontAwesomeIcon icon={faPlug} />
                         Conexiones Activas
                     </h3>
-                    <div style={statsGridStyle}>
-                        <div style={metricCardStyle('#10B981')}>
-                            <FontAwesomeIcon icon={faUser} style={{ fontSize: '24px', marginBottom: '8px' }} />
-                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{pool?.total || 0}</div>
-                            <div style={{ fontSize: '13px', color: '#718096' }}>Total de conexiones</div>
-                        </div>
-                        <div style={metricCardStyle('#F59E0B')}>
-                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{pool?.waiting || 0}</div>
-                            <div style={{ fontSize: '13px', color: '#718096' }}>En espera</div>
-                        </div>
-                    </div>
                     <div style={tableContainerStyle}>
                         <table style={tableStyle}>
                             <thead>
                                 <tr>
                                     <th style={thStyle}>Usuario</th>
                                     <th style={thStyle}>Estado</th>
-                                    <th style={thStyle}>Tiempo</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -493,65 +454,61 @@ export const AdminStats: React.FC = () => {
                                                 {conn.state === 'active' ? 'Activa' : 'Inactiva'}
                                             </span>
                                         </td>
-                                        {/* ✅ FIX 1: td de Tiempo que faltaba */}
-                                        <td style={tdStyle}>
-                                            {conn.state === 'idle' ? '—' : formatUptime(conn.duration)}
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+            )}
+
+
+            {/* GRÁFICA: Tablas que mejor usan los índices */}
+            {topIndexTables.length > 0 && (
+                <div style={cardStyle}>
+                    <h3 style={cardTitleStyle}>
+                        <FontAwesomeIcon icon={faChartSimple} style={{ color: colors.doradoClasico }} />
+                        Tablas con mejor rendimiento de búsqueda
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#718096', marginBottom: '16px' }}>
+                        Porcentaje de consultas que usan índices correctamente
+                    </p>
+                    <div style={chartContainerStyle}>
+                        {topIndexTables.map((item, idx) => {
+                            const tableName = item.table_name.split('.').pop() || item.table_name;
+                            const percentage = item.index_usage_pct;
+                            let statusText = '';
+                            let statusColor = '';
+
+                           
+                            return (
+                                <div key={idx} style={barItemStyle}>
+                                    <div style={barLabelStyle}>
+                                        <span style={{ fontWeight: 500 }}>{tableName}</span>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <span style={{ color: statusColor, fontSize: '12px' }}>{statusText}</span>
+                                            <span style={{ fontWeight: 600, color: colors.doradoClasico }}>{percentage}%</span>
+                                        </div>
+                                    </div>
+                                    <div style={barBackgroundStyle}>
+                                        <div style={barFillStyle(percentage)} />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div style={{ marginTop: '16px', fontSize: '12px', color: '#718096', display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#10B981', borderRadius: '2px', marginRight: '4px' }}></span> Excelente (&gt;70%)</span>
+                        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: colors.doradoClasico, borderRadius: '2px', marginRight: '4px' }}></span> Bueno (40-70%)</span>
+                        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#F59E0B', borderRadius: '2px', marginRight: '4px' }}></span> Mejorable (&lt;40%)</span>
                     </div>
                 </div>
             )}
 
-            {/* Locks Activos */}
-            {locks.length > 0 && (
-                <div style={cardStyle}>
-                    <h3 style={cardTitleStyle}>
-                        <FontAwesomeIcon icon={faKey} />
-                        Operaciones en Espera
-                    </h3>
-                    <div style={tableContainerStyle}>
-                        <table style={tableStyle}>
-                            <thead>
-                                <tr>
-                                    <th style={thStyle}>Usuario</th>
-                                    <th style={thStyle}>Tipo</th>
-                                    <th style={thStyle}>Estado</th>
-                                    <th style={thStyle}>Duración</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {locks.slice(0, 5).map((lock, idx) => (
-                                    <tr key={idx}>
-                                        <td style={tdStyle}>{lock.username}</td>
-                                        <td style={tdStyle}>{lock.locktype}</td>
-                                        <td style={tdStyle}>
-                                            <span style={{
-                                                display: 'inline-block',
-                                                padding: '2px 8px',
-                                                borderRadius: '12px',
-                                                fontSize: '11px',
-                                                backgroundColor: lock.granted ? '#D1FAE5' : '#FEE2E2',
-                                                color: lock.granted ? '#10B981' : '#EF4444',
-                                            }}>
-                                                {lock.granted ? 'En proceso' : 'En espera'}
-                                            </span>
-                                        </td>
-                                        {/* ✅ FIX 2: lock.duration puede ser objeto {} */}
-                                        <td style={tdStyle}>
-                                            {typeof lock.duration === 'object'
-                                                ? formatUptime(lock.duration)
-                                                : (lock.duration || '—')}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+
         </div>
+
+        
     );
 };

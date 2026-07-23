@@ -31,7 +31,7 @@ export interface Backup {
 export interface BackupConfig {
   id: number;
   nombre: string;
-  frecuencia: 'Siario' | 'Semanal' | 'Mensual';
+  frecuencia: 'Diario' | 'Semanal' | 'Mensual';
   hora_ejecucion: string;
   dia_semana?: number;
   dia_mes?: number;

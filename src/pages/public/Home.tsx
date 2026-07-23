@@ -1,486 +1,450 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, useInView, useAnimation, Variants } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faScissors,
-  faCalendarCheck,
-  faUser,
-  faStar,
-  faClock,
   faArrowRight,
-  faQuoteRight,
-  faFaceSmile,
-  faCrown,
+  faCalendarCheck,
+  faClock,
+  faLocationDot,
+  faScissors,
+  faSpinner,
+  faStar,
 } from '@fortawesome/free-solid-svg-icons';
-import { Button } from '../../components/common/Button';
 import { colors } from '../../styles/colors';
 import { servicioService } from '../../services/servicioService';
 import type { Servicio } from '../../types/servicio';
+import {
+  formatPrice,
+  getServiceDisplayName,
+  getServiceImage,
+} from '../../utils/servicioDisplay';
 
-// Hook para contador animado
-const useCountUp = (end: number, duration: number = 2000, startOnView: boolean = true) => {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-  useEffect(() => {
-    if (startOnView && !isInView) return;
-    if (hasStarted) return;
-
-    setHasStarted(true);
-    let startTime: number;
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      setCount(Math.floor(progress * end));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [end, duration, isInView, startOnView, hasStarted]);
-
-  return { count, ref };
-};
-
-// Variantes de animacion
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
-};
-
-const fadeIn: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.8 } }
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-  }
-};
-
-const scaleUp: Variants = {
-  hidden: { opacity: 0, scale: 0.8 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" } }
+    transition: { staggerChildren: 0.08, delayChildren: 0.12 },
+  },
 };
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-
-  // Estado para servicios desde la BD
+  const location = useLocation();
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loadingServicios, setLoadingServicios] = useState(true);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
-  // Stats con contadores (datos reales basados en servicios)
-  const statsData = [
-    { id: 1, value: 10, suffix: '+', label: 'Años de experiencia', icon: faCrown },
-    { id: 2, value: 15, suffix: 'K+', label: 'Clientes satisfechos', icon: faFaceSmile },
-    { id: 3, value: 6, suffix: '', label: 'Barberos expertos', icon: faUser },
-    { id: 4, value: servicios.length, suffix: '+', label: 'Servicios disponibles', icon: faScissors },
-  ];
-
-  // Cargar servicios desde la BD
   useEffect(() => {
     const loadServicios = async () => {
       try {
         setLoadingServicios(true);
-        const data = await servicioService.getAll();
-        // Filtrar solo servicios activos
-        const activeServices = data.filter(servicio => servicio.activo === true);
-        setServicios(activeServices);
+        const data = await servicioService.getActive();
+        setServicios(data.filter((servicio) => servicio.activo));
       } catch (error) {
         console.error('Error loading servicios:', error);
+        try {
+          const data = await servicioService.getAll();
+          setServicios(data.filter((servicio) => servicio.activo));
+        } catch (fallbackError) {
+          console.error('Error loading fallback servicios:', fallbackError);
+        }
       } finally {
         setLoadingServicios(false);
       }
     };
+
     loadServicios();
   }, []);
 
-  const handleImageError = (servicioId: number) => {
-    setImageErrors(prev => ({ ...prev, [servicioId]: true }));
+  const featuredServices = useMemo(() => servicios.slice(0, 4), [servicios]);
+
+  const goToBooking = (servicio: Servicio) => {
+    navigate(
+      `/agendar-cita?servicioId=${servicio.id}&servicioNombre=${encodeURIComponent(servicio.nombre)}&precio=${servicio.precio}&duracion=${servicio.duracion}`,
+      { state: { backgroundLocation: location } },
+    );
   };
 
-  // Estilos
-  const containerStyle: React.CSSProperties = {
+  const pageStyle: React.CSSProperties = {
     width: '100%',
     overflowX: 'hidden',
+    backgroundColor: '#FFFFFF',
   };
 
   const heroStyle: React.CSSProperties = {
-    backgroundImage: `url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1170&auto=format&fit=crop')`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center top',
-    backgroundAttachment: 'fixed',
-    minHeight: '100vh',
+    minHeight: '92vh',
+    position: 'relative',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    backgroundImage:
+      'linear-gradient(90deg, rgba(0,0,0,0.76) 0%, rgba(0,0,0,0.54) 45%, rgba(0,0,0,0.18) 100%), url("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1900&q=85")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center 38%',
+    color: '#FFFFFF',
   };
 
-  const heroContentStyle: React.CSSProperties = {
-    maxWidth: '800px',
+  const heroInnerStyle: React.CSSProperties = {
+    width: 'min(1320px, 100%)',
     margin: '0 auto',
-    textAlign: 'center',
-    padding: '0 24px',
+    padding: '140px 32px 72px',
+  };
+
+  const eyebrowStyle: React.CSSProperties = {
+    color: '#FFC629',
+    fontSize: 12,
+    fontWeight: 900,
+    letterSpacing: 5,
+    textTransform: 'uppercase',
+    marginBottom: 18,
   };
 
   const heroTitleStyle: React.CSSProperties = {
-    color: colors.blancoHueso,
-    fontSize: 'clamp(36px, 8vw, 64px)',
-    marginBottom: '24px',
-    lineHeight: 1.1,
-    fontWeight: 600,
-    textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+    maxWidth: 720,
+    color: '#FFFFFF',
+    fontFamily: 'Lato, sans-serif',
+    fontSize: 'clamp(54px, 8vw, 104px)',
+    lineHeight: 0.96,
+    fontWeight: 400,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    margin: 0,
   };
 
-  const heroSubtitleStyle: React.CSSProperties = {
-    color: colors.blancoHueso,
-    fontSize: 'clamp(16px, 2.5vw, 20px)',
-    marginBottom: '48px',
-    opacity: 0.9,
-    lineHeight: 1.6,
-    maxWidth: '600px',
-    margin: '0 auto 48px',
+  const heroTextStyle: React.CSSProperties = {
+    maxWidth: 580,
+    color: 'rgba(255,255,255,0.86)',
+    fontSize: 'clamp(17px, 2vw, 21px)',
+    lineHeight: 1.7,
+    margin: '28px 0 36px',
   };
 
-  const heroButtonsStyle: React.CSSProperties = {
+  const heroActionsStyle: React.CSSProperties = {
     display: 'flex',
-    gap: '20px',
-    justifyContent: 'center',
+    gap: 14,
     flexWrap: 'wrap',
   };
 
-  const sectionStyle = (bgColor: string = 'transparent'): React.CSSProperties => ({
-    padding: 'clamp(60px, 10vw, 100px) 24px',
-    backgroundColor: bgColor,
-  });
+  const primaryButtonStyle: React.CSSProperties = {
+    border: '1px solid #FFC629',
+    backgroundColor: '#FFC629',
+    color: '#111111',
+    padding: '15px 26px',
+    fontSize: 13,
+    fontWeight: 900,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+  };
 
-  const sectionContentStyle: React.CSSProperties = {
-    maxWidth: '1200px',
+  const ghostButtonStyle: React.CSSProperties = {
+    ...primaryButtonStyle,
+    backgroundColor: 'transparent',
+    color: '#FFFFFF',
+    border: '1px solid rgba(255,255,255,0.75)',
+  };
+
+  const sectionStyle: React.CSSProperties = {
+    padding: '96px 32px',
+  };
+
+  const sectionInnerStyle: React.CSSProperties = {
+    width: 'min(1320px, 100%)',
     margin: '0 auto',
   };
 
-  const sectionTitleStyle: React.CSSProperties = {
-    textAlign: 'center',
-    marginBottom: '16px',
-    color: colors.negroSuave,
-    fontSize: 'clamp(28px, 5vw, 42px)',
-    fontWeight: 600,
+  const sectionHeaderStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'end',
+    justifyContent: 'space-between',
+    gap: 24,
+    marginBottom: 44,
+    flexWrap: 'wrap',
   };
 
-  const sectionSubtitleStyle: React.CSSProperties = {
-    textAlign: 'center',
-    fontSize: '18px',
-    color: colors.azulAcero,
-    maxWidth: '700px',
-    margin: '0 auto 60px',
-    lineHeight: 1.6,
+  const smallLabelStyle: React.CSSProperties = {
+    color: '#C40000',
+    fontSize: 12,
+    fontWeight: 900,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  };
+
+  const sectionTitleStyle: React.CSSProperties = {
+    color: '#111111',
+    fontFamily: 'Lato, sans-serif',
+    fontSize: 'clamp(38px, 6vw, 78px)',
+    fontWeight: 400,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+    margin: 0,
+    lineHeight: 1,
+  };
+
+  const sectionTextStyle: React.CSSProperties = {
+    maxWidth: 560,
+    color: '#53606D',
+    lineHeight: 1.75,
+    fontSize: 16,
   };
 
   const servicesGridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-    gap: '30px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: 32,
   };
 
   const serviceCardStyle: React.CSSProperties = {
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    border: `1px solid ${colors.azulAcero}15`,
+    backgroundColor: '#FFFFFF',
+    border: '1px solid rgba(0,0,0,0.07)',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
-  };
-
-  const serviceImageContainerStyle: React.CSSProperties = {
-    height: '220px',
-    overflow: 'hidden',
-    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100%',
   };
 
   const serviceImageStyle: React.CSSProperties = {
     width: '100%',
-    height: '100%',
+    height: 245,
     objectFit: 'cover',
-    transition: 'transform 0.5s ease',
+    display: 'block',
+    backgroundColor: '#F5F5F5',
   };
 
-  const serviceNoImageStyle: React.CSSProperties = {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.grafito,
-    color: colors.blancoHueso,
-    fontSize: '48px',
-  };
-
-  const serviceContentStyle: React.CSSProperties = {
-    padding: '24px',
-  };
-
-  const serviceNameStyle: React.CSSProperties = {
-    fontSize: '22px',
-    fontWeight: 600,
-    marginBottom: '12px',
-    color: colors.negroSuave,
-  };
-
-  const serviceDescriptionStyle: React.CSSProperties = {
-    color: colors.azulAcero,
-    marginBottom: '20px',
-    lineHeight: 1.6,
-    fontSize: '14px',
-    display: '-webkit-box',
-    WebkitLineClamp: 3,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-  };
-
-  const serviceFooterStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTop: `1px solid ${colors.azulAcero}15`,
-    paddingTop: '16px',
-  };
-
-  const servicePriceStyle: React.CSSProperties = {
-    fontSize: '24px',
-    fontWeight: 700,
-    color: colors.doradoClasico,
-  };
-
-  const serviceDurationStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: colors.azulAcero,
-    fontSize: '14px',
-  };
-
-  const statsGridStyle: React.CSSProperties = {
+  const serviceBodyStyle: React.CSSProperties = {
+    padding: '25px 22px 28px',
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '40px',
+    gap: 12,
     textAlign: 'center',
+    flex: 1,
   };
 
-  const statItemStyle: React.CSSProperties = {
-    padding: '20px',
+  const serviceEyebrowStyle: React.CSSProperties = {
+    color: '#D0021B',
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
   };
 
-  const statIconStyle: React.CSSProperties = {
-    fontSize: '48px',
-    color: colors.doradoClasico,
-    marginBottom: '16px',
+  const serviceTitleStyle: React.CSSProperties = {
+    color: '#080808',
+    fontFamily: 'Lato, sans-serif',
+    fontSize: 26,
+    lineHeight: 1.15,
+    fontWeight: 500,
+    margin: 0,
   };
 
-  const statValueStyle: React.CSSProperties = {
-    fontSize: '48px',
-    fontWeight: 700,
-    color: colors.negroSuave,
-    marginBottom: '8px',
-    fontFamily: 'Playfair Display, serif',
+  const serviceMetaStyle: React.CSSProperties = {
+    color: '#111111',
+    display: 'flex',
+    justifyContent: 'center',
+    gap: 18,
+    flexWrap: 'wrap',
+    fontSize: 14,
   };
 
-  const statLabelStyle: React.CSSProperties = {
-    color: colors.azulAcero,
-    fontSize: '15px',
+  const splitSectionStyle: React.CSSProperties = {
+    backgroundColor: '#F7F7F7',
+    padding: '96px 32px',
   };
 
-  const ctaStyle: React.CSSProperties = {
-    background: `linear-gradient(135deg, ${colors.grafito} 0%, ${colors.azulAcero} 100%)`,
-    padding: 'clamp(60px, 10vw, 100px) 24px',
-    textAlign: 'center',
+  const splitGridStyle: React.CSSProperties = {
+    width: 'min(1320px, 100%)',
+    margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: 42,
+    alignItems: 'center',
   };
 
-  const ctaTitleStyle: React.CSSProperties = {
-    color: colors.blancoHueso,
-    marginBottom: '20px',
-    fontSize: 'clamp(28px, 5vw, 40px)',
-    fontWeight: 600,
+  const imageGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 0.78fr',
+    gap: 16,
+    alignItems: 'end',
   };
 
-  const ctaTextStyle: React.CSSProperties = {
-    color: colors.blancoHueso,
-    fontSize: '18px',
-    maxWidth: '600px',
-    margin: '0 auto 40px',
-    opacity: 0.9,
-    lineHeight: 1.6,
+  const imageLargeStyle: React.CSSProperties = {
+    width: '100%',
+    height: 430,
+    objectFit: 'cover',
   };
 
-  // Componente Stat con contador
-  const StatItem: React.FC<{ stat: typeof statsData[0]; index: number }> = ({ stat, index }) => {
-    const { count, ref } = useCountUp(stat.value, 2000);
+  const imageSmallStyle: React.CSSProperties = {
+    width: '100%',
+    height: 280,
+    objectFit: 'cover',
+  };
 
-    return (
-      <motion.div
-        ref={ref}
-        style={statItemStyle}
-        variants={scaleUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ delay: index * 0.1 }}
-      >
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <FontAwesomeIcon icon={stat.icon} style={statIconStyle} />
-        </motion.div>
-        <div style={statValueStyle}>{count}{stat.suffix}</div>
-        <div style={statLabelStyle}>{stat.label}</div>
-      </motion.div>
-    );
+  const featureListStyle: React.CSSProperties = {
+    display: 'grid',
+    gap: 14,
+    marginTop: 28,
+  };
+
+  const featureItemStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '42px 1fr',
+    gap: 14,
+    alignItems: 'start',
+    padding: '16px 0',
+    borderBottom: '1px solid rgba(0,0,0,0.09)',
   };
 
   return (
-    <div style={containerStyle}>
-
-      {/* Hero Section */}
+    <main style={pageStyle}>
       <section id="inicio" style={heroStyle}>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to bottom, rgba(10,16,20,0.6) 0%, rgba(10,16,20,0.4) 40%, rgba(10,16,20,0.75) 100%)',
-        }} />
-
-        <motion.div
-          style={{ ...heroContentStyle, position: 'relative', zIndex: 1 }}
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-        >
-          <motion.h1 style={heroTitleStyle} variants={fadeInUp}>
-            Tradición y Estilo en Cada Corte
-          </motion.h1>
-          <motion.p style={heroSubtitleStyle} variants={fadeInUp}>
-            Más de 10 años ofreciendo servicios de barbería de alta calidad.
-            Donde la tradición se encuentra con las tendencias modernas.
-          </motion.p>
-          <motion.div style={heroButtonsStyle} variants={fadeInUp}>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="secondary" size="large" onClick={() => navigate("/nosotros")}>
-                Conocer Más
-                <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: '8px' }} />
-              </Button>
-            </motion.div>
+        <motion.div style={heroInnerStyle} initial="hidden" animate="visible" variants={staggerContainer}>
+          <motion.div style={eyebrowStyle} variants={fadeInUp}>
+            Barberia Carlyn
           </motion.div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            bottom: '40px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-          }}
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <div style={{
-            width: '30px',
-            height: '50px',
-            border: '2px solid rgba(255,255,255,0.4)',
-            borderRadius: '20px',
-            display: 'flex',
-            justifyContent: 'center',
-            paddingTop: '8px',
-          }}>
-            <motion.div
-              style={{
-                width: '6px',
-                height: '10px',
-                backgroundColor: colors.doradoClasico,
-                borderRadius: '3px',
-              }}
-              animate={{ y: [0, 12, 0], opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
+          <motion.h1 style={heroTitleStyle} variants={fadeInUp}>
+            Corte clasico, trato fino
+          </motion.h1>
+          <motion.p style={heroTextStyle} variants={fadeInUp}>
+            Reserva tu servicio con barberos profesionales, horarios disponibles y anticipo seguro para apartar tu lugar.
+          </motion.p>
+          <motion.div style={heroActionsStyle} variants={fadeInUp}>
+            <button type="button" style={primaryButtonStyle} onClick={() => navigate('/servicios')}>
+              Ver servicios
+              <FontAwesomeIcon icon={faArrowRight} style={{ marginLeft: 10 }} />
+            </button>
+            <button type="button" style={ghostButtonStyle} onClick={() => navigate('/nostros')}>
+              Conocer barberia
+            </button>
+          </motion.div>
         </motion.div>
       </section>
 
-      {/* Servicios Section - Con datos reales de la BD */}
-      <section id="servicios" style={sectionStyle()}>
-        <div style={sectionContentStyle}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={fadeInUp}
-          >
-            <h2 style={sectionTitleStyle}>Nuestros Servicios</h2>
-            <p style={sectionSubtitleStyle}>
-              Ofrecemos una amplia gama de servicios de barbería,
-              utilizando productos de alta calidad y técnicas profesionales.
+      <section id="servicios" style={sectionStyle}>
+        <div style={sectionInnerStyle}>
+          <div style={sectionHeaderStyle}>
+            <div>
+              <div style={smallLabelStyle}>Catalogo</div>
+              <h2 style={sectionTitleStyle}>Servicios</h2>
+            </div>
+            <p style={sectionTextStyle}>
+              Paquetes pensados para una experiencia completa. Si despues decides separar corte, barba o facial como servicios individuales, esta vista ya esta lista para mostrarlos como catalogo.
             </p>
-          </motion.div>
+          </div>
 
+          {loadingServicios ? (
+            <div style={{ textAlign: 'center', padding: 60 }}>
+              <FontAwesomeIcon icon={faSpinner} spin style={{ color: colors.doradoClasico, fontSize: 32 }} />
+            </div>
+          ) : (
+            <motion.div style={servicesGridStyle} variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+              {featuredServices.map((servicio, index) => {
+                const display = getServiceDisplayName(servicio.nombre);
+                const image = getServiceImage(servicio, index);
 
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            style={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <img
-              src="/servicios.jpeg"
-              alt="Servicios"
-              style={{
-                width: '100%',
-                maxWidth: '1000px', // controla proporción máxima
-                height: 'auto',
-                borderRadius: '16px',
-                objectFit: 'contain',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-              }}
-            />
-          </motion.div>
+                return (
+                  <motion.article
+                    key={servicio.id}
+                    style={serviceCardStyle}
+                    variants={fadeInUp}
+                    whileHover={{ y: -8, boxShadow: '0 18px 42px rgba(0,0,0,0.12)' }}
+                    onClick={() => navigate(`/servicios/${servicio.id}`)}
+                  >
+                    {!imageErrors[servicio.id] ? (
+                      <img
+                        src={image}
+                        alt={display.title}
+                        style={serviceImageStyle}
+                        onError={() => setImageErrors((prev) => ({ ...prev, [servicio.id]: true }))}
+                      />
+                    ) : (
+                      <div style={{ ...serviceImageStyle, display: 'grid', placeItems: 'center' }}>
+                        <FontAwesomeIcon icon={faScissors} style={{ color: colors.doradoClasico, fontSize: 44 }} />
+                      </div>
+                    )}
+
+                    <div style={serviceBodyStyle}>
+                      <span style={serviceEyebrowStyle}>{display.label}</span>
+                      <h3 style={serviceTitleStyle}>#{display.title}</h3>
+                      <div style={serviceMetaStyle}>
+                        <span>
+                          <FontAwesomeIcon icon={faClock} style={{ color: '#C40000', marginRight: 7 }} />
+                          {servicio.duracion} min
+                        </span>
+                        <strong>{formatPrice(servicio.precio)}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        style={{ ...primaryButtonStyle, margin: '12px auto 0' }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          goToBooking(servicio);
+                        }}
+                      >
+                        Agendar
+                      </button>
+                    </div>
+                  </motion.article>
+                );
+              })}
+            </motion.div>
+          )}
         </div>
       </section>
 
-
-      {/* CTA Section 
-      <section style={ctaStyle}>
-        <motion.div
-          style={sectionContentStyle}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={fadeInUp}
-        >
-          <h2 style={ctaTitleStyle}>
-            ¿Listo para un cambio de imagen?
-          </h2>
-          <p style={ctaTextStyle}>
-            Reserva tu cita ahora y obtén un 10% de descuento en tu primera visita
-          </p>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-            <Button variant="accent" size="large">
-              <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '8px' }} />
-              Agendar Cita Ahora
-            </Button>
+      <section style={splitSectionStyle}>
+        <div style={splitGridStyle}>
+          <motion.div style={imageGridStyle} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}>
+            <motion.img
+              variants={fadeInUp}
+              src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=900&q=85"
+              alt="Trabajo de barberia"
+              style={imageLargeStyle}
+            />
+            <motion.img
+              variants={fadeInUp}
+              src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=700&q=85"
+              alt="Afeitado profesional"
+              style={imageSmallStyle}
+            />
           </motion.div>
-        </motion.div>
-      </section> */}
-    </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}>
+            <motion.div style={smallLabelStyle} variants={fadeInUp}>
+              Experiencia
+            </motion.div>
+            <motion.h2 style={{ ...sectionTitleStyle, letterSpacing: 1 }} variants={fadeInUp}>
+              Mas que un corte
+            </motion.h2>
+            <motion.p style={{ ...sectionTextStyle, marginTop: 22 }} variants={fadeInUp}>
+              Cada cita combina tecnica, detalle y puntualidad. Elige servicio, sucursal, barbero y horario desde el sitio.
+            </motion.p>
+
+            <motion.div style={featureListStyle} variants={staggerContainer}>
+              {[
+                { icon: faCalendarCheck, title: 'Reserva con anticipo', text: 'Aparta tu horario pagando el 50% del servicio.' },
+                { icon: faStar, title: 'Paquetes premium', text: 'Corte, barba, lavado, masaje y tratamientos segun el paquete.' },
+                { icon: faLocationDot, title: 'Atencion por sucursal', text: 'Consulta disponibilidad real antes de confirmar.' },
+              ].map((item) => (
+                <motion.div key={item.title} style={featureItemStyle} variants={fadeInUp}>
+                  <span style={{ color: colors.doradoClasico, fontSize: 22 }}>
+                    <FontAwesomeIcon icon={item.icon} />
+                  </span>
+                  <div>
+                    <strong style={{ color: '#111111', fontSize: 18 }}>{item.title}</strong>
+                    <p style={{ color: '#66717D', margin: '6px 0 0', lineHeight: 1.6 }}>{item.text}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+    </main>
   );
 };

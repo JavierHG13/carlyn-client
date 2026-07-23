@@ -243,7 +243,7 @@ export const ManualBackupModal: React.FC<ManualBackupModalProps> = ({
             ) : (
               <div style={tablesContainerStyle}>
                 {tablas.map((tabla) => {
-                  const tableKey = `${tabla.table_schema}.${tabla.table_name}`;
+                  const tableKey = `${tabla.table_name}`;
                   const isSelected = selectedTables.has(tableKey);
                   return (
                     <div
@@ -269,26 +269,7 @@ export const ManualBackupModal: React.FC<ManualBackupModalProps> = ({
           </div>
         )}
 
-        {/* Descripción */}
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '14px', fontWeight: 500, color: colors.azulAcero, marginBottom: '8px', display: 'block' }}>
-            Descripción (opcional)
-          </label>
-          <textarea
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #E2E8F0',
-              borderRadius: '8px',
-              fontSize: '14px',
-              resize: 'vertical',
-              minHeight: '60px',
-            }}
-            placeholder="Ej. Backup antes de actualización"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-          />
-        </div>
+       
 
         <div style={modalFooterStyle}>
           <button style={buttonStyle('secondary')} onClick={onClose}>
@@ -306,7 +287,6 @@ export const ManualBackupModal: React.FC<ManualBackupModalProps> = ({
               </>
             ) : (
               <>
-                <FontAwesomeIcon icon={faPlay} />
                 Crear Backup
               </>
             )}

@@ -30,6 +30,11 @@ export interface CitaCliente {
     // Método de pago
     metodo_pago_id: number | null;
     metodo_pago_nombre: string | null;
+
+    // Local / sucursal
+    local_id?: number | null;
+    local_nombre?: string | null;
+    local_direccion?: string | null;
 }
 
 export interface ResumenCitas {

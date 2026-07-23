@@ -3,8 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFacebook,
   faInstagram,
-  faTwitter,
-  faWhatsapp
+  faTwitter
 } from '@fortawesome/free-brands-svg-icons';
 import {
   faPhone,
@@ -71,13 +70,12 @@ export const Footer: React.FC = () => {
         <div>
           <h3 style={footerTitleStyle}>Barbería Carlyn</h3>
           <p style={{ opacity: 0.8, marginBottom: '20px' }}>
-            Donde el estilo clásico se encuentra con las tendencias modernas.
+            Ser la barbería de referencia en Huejutla, ofreciendo una experiencia única donde estilo, calidad y atención personalizada se combinan para hacer que cada cliente luzca y se sienta mejor que nunca.
           </p>
           <div style={socialIconsStyle}>
             <FontAwesomeIcon icon={faFacebook} style={socialIconStyle} />
             <FontAwesomeIcon icon={faInstagram} style={socialIconStyle} />
             <FontAwesomeIcon icon={faTwitter} style={socialIconStyle} />
-            <FontAwesomeIcon icon={faWhatsapp} style={socialIconStyle} />
           </div>
         </div>
 
@@ -90,13 +88,11 @@ export const Footer: React.FC = () => {
 
           <Link to="#servicios" style={footerLinkStyle}>Servicios</Link>
           <Link to="#barberos" style={footerLinkStyle}>Barberos</Link>
-          <Link to="#testimonios" style={footerLinkStyle}>Testimonios</Link>
         </div>
 
         <div>
           <h3 style={footerTitleStyle}>Horario</h3>
-          <p style={{ opacity: 0.8 }}>Lunes a Viernes: 9:00 - 20:00</p>
-          <p style={{ opacity: 0.8 }}>Sábados: 10:00 - 18:00</p>
+          <p style={{ opacity: 0.8 }}>Lunes a sabado: 8:00 AM - 8:00 PM</p>
           <p style={{ opacity: 0.8 }}>Domingos: Cerrado</p>
         </div>
 
@@ -104,15 +100,15 @@ export const Footer: React.FC = () => {
           <h3 style={footerTitleStyle}>Contacto</h3>
           <p style={{ opacity: 0.8 }}>
             <FontAwesomeIcon icon={faPhone} style={{ marginRight: '8px' }} />
-            +56 9 1234 5678
+            +52 771 261 3445
           </p>
           <p style={{ opacity: 0.8 }}>
             <FontAwesomeIcon icon={faEnvelope} style={{ marginRight: '8px' }} />
-            contacto@barberiacarlyn.cl
+            agustinsebas1986@gmail.com
           </p>
           <p style={{ opacity: 0.8 }}>
             <FontAwesomeIcon icon={faLocationDot} style={{ marginRight: '8px' }} />
-            Av. Principal 123, Santiago
+            Boulevard Adolfo López Mateos, 43000 Huejutla Hgo., México
           </p>
         </div>
       </div>
