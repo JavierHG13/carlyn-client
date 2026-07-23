@@ -284,11 +284,16 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
       return;
     }
 
+    if (!user?.id) {
+      setError('No pudimos identificar tu cuenta. Cierra sesion e inicia sesion nuevamente.');
+      return;
+    }
+
     setSubmitAction('no-pay');
     setError('');
     try {
       await citaService.create({
-        clienteId: user?.id || 0,
+        clienteId: user.id,
         localId: selectedLocal.id,
         barberoId: selectedBarbero.barbero_id,
         servicioId: servicioSeleccionado.id,

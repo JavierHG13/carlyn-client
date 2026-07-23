@@ -1,6 +1,11 @@
 import api from './axios'
 import type { CitaCliente, ResumenCitas } from '../types/misCitas';
 
+const parseDateKey = (fecha: string) => {
+    const [year, month, day] = String(fecha).slice(0, 10).split('-').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1);
+};
+
 export const misCitasService = {
     // Obtener todas las citas del cliente
     getAll: async (): Promise<CitaCliente[]> => {
@@ -13,7 +18,7 @@ export const misCitasService = {
         hoy.setHours(0, 0, 0, 0);
 
         const proximas = citas.filter(c => {
-            const fechaCita = new Date(c.fecha);
+            const fechaCita = parseDateKey(c.fecha);
             return fechaCita >= hoy && (c.estado_nombre === 'Pendiente' || c.estado_nombre === 'Confirmada');
         });
         

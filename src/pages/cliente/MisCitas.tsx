@@ -20,6 +20,11 @@ import { CancelarCitaModal } from '../../components/cliente/CancelarCitaModal';
 import { ReagendarCitaModal } from '../../components/cliente/ReagendarCitaModal';
 import { colors } from '../../styles/colors';
 
+const parseDateKey = (fecha: string) => {
+    const [year, month, day] = String(fecha).slice(0, 10).split('-').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1);
+};
+
 export const MisCitas: React.FC = () => {
     const navigate = useNavigate();
     const [citas, setCitas] = useState<CitaCliente[]>([]);
@@ -42,8 +47,8 @@ export const MisCitas: React.FC = () => {
             setLoading(true);
             const data = await misCitasService.getAll();
             const ordered = [...data].sort((a, b) => {
-                const dateA = new Date(`${a.fecha}T${a.hora_inicio}`).getTime();
-                const dateB = new Date(`${b.fecha}T${b.hora_inicio}`).getTime();
+                const dateA = new Date(`${String(a.fecha).slice(0, 10)}T${a.hora_inicio}`).getTime();
+                const dateB = new Date(`${String(b.fecha).slice(0, 10)}T${b.hora_inicio}`).getTime();
                 return dateB - dateA;
             });
             setCitas(ordered);
@@ -111,7 +116,7 @@ export const MisCitas: React.FC = () => {
                 return citas.filter(c => c.estado_nombre === 'Cancelada');
             case 'proximas':
                 return citas.filter(c => {
-                    const fechaCita = new Date(c.fecha);
+                    const fechaCita = parseDateKey(c.fecha);
                     return fechaCita >= hoy && (c.estado_nombre === 'Pendiente' || c.estado_nombre === 'Confirmada');
                 });
             default:
