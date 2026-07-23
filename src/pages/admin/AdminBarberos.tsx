@@ -10,7 +10,7 @@ import {
   faPlus,
 } from '@fortawesome/free-solid-svg-icons';
 import { BarberosTable } from '../../components/admin/barberos/BarberosTable';
-import { BarberoModal } from '../../components/admin/barberos/barberoModal';
+import { BarberoModal } from '../../components/admin/barberos/BarberoModal';
 import { BarberoDetailsModal } from '../../components/admin/barberos/BarberoDetailsModal';
 import { BarberoStatsModal } from '../../components/admin/barberos/BarberoStatsModal';
 import { barberoService } from '../../services/barberoService';
