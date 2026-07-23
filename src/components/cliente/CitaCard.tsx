@@ -55,7 +55,7 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
     const estadoConfig = getEstadoConfig(cita.estado_nombre);
     const puedeCancelar = cita.estado_nombre === 'Pendiente' || cita.estado_nombre === 'Confirmada';
     const esPasada = new Date(cita.fecha) < new Date();
-    const anticipoRequerido = cita.estado_nombre === 'Pendiente' && Number(cita.monto_pagado || 0) <= 0;
+    const pagoRequerido = cita.estado_nombre === 'Pendiente' && Number(cita.monto_pagado || 0) <= 0;
 
     const cardStyle: React.CSSProperties = {
         backgroundColor: 'white',
@@ -137,10 +137,10 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
                 </div>
                 <div style={{
                     ...badgeStyle,
-                    ...(anticipoRequerido ? { backgroundColor: '#FFF7ED', color: '#C2410C' } : {}),
+                    ...(pagoRequerido ? { backgroundColor: '#FFF7ED', color: '#C2410C' } : {}),
                 }}>
                     <FontAwesomeIcon icon={estadoConfig.icon} />
-                    {anticipoRequerido ? 'Pendiente de anticipo' : estadoConfig.text}
+                    {pagoRequerido ? 'Pendiente de pago' : estadoConfig.text}
                 </div>
             </div>
 
@@ -226,18 +226,18 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
                             Detalles
                         </button>
 
-                        {anticipoRequerido && (
+                        {pagoRequerido && (
                             <button
                                 style={buttonStyle(colors.doradoClasico)}
                                 onClick={() => onPagarAnticipo?.(cita)}
                                 disabled={paying}
                             >
                                 <FontAwesomeIcon icon={faCreditCard} />
-                                {paying ? 'Abriendo pago...' : 'Pagar anticipo'}
+                                {paying ? 'Abriendo pago...' : 'Pagar cita'}
                             </button>
                         )}
 
-                        {puedeCancelar && !esPasada && !anticipoRequerido && (
+                        {puedeCancelar && !esPasada && !pagoRequerido && (
                             <button
                                 style={buttonStyle(colors.doradoClasico)}
                                 onClick={() => onReagendar?.(cita)}

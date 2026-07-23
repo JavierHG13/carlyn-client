@@ -84,7 +84,7 @@ export const MisCitas: React.FC = () => {
         }
     };
 
-    const handlePagarAnticipo = async (cita: CitaCliente) => {
+    const handlePagarCita = async (cita: CitaCliente) => {
         setPayingCitaId(cita.id);
         try {
             const preference = await paymentService.createExistingAppointmentPreference(cita.id);
@@ -92,7 +92,7 @@ export const MisCitas: React.FC = () => {
             if (!checkoutUrl) throw new Error('Mercado Pago no devolvió una URL de pago');
             window.location.href = checkoutUrl;
         } catch (error: any) {
-            alert(error.response?.data?.message || error.message || 'No pudimos iniciar el pago del anticipo.');
+            alert(error.response?.data?.message || error.message || 'No pudimos iniciar el pago de la cita.');
         } finally {
             setPayingCitaId(null);
         }
@@ -303,7 +303,7 @@ export const MisCitas: React.FC = () => {
                                 setSelectedCita(cita);
                                 setRescheduleModalOpen(true);
                             }}
-                            onPagarAnticipo={handlePagarAnticipo}
+                            onPagarAnticipo={handlePagarCita}
                             paying={payingCitaId === cita.id}
                         />
                     ))}

@@ -18,6 +18,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../../context/AuthContext';
 import api from '../../../services/axios';
+import { citaService } from '../../../services/citasService';
 import { localService, type Local } from '../../../services/localService';
 import { paymentService } from '../../../services/paymentService';
 import { colors } from '../../../styles/colors';
@@ -67,7 +68,7 @@ interface AgendarCitaProps {
 export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
 
   const servicioSeleccionado = useMemo<ServicioSeleccionado | null>(() => {
     const servicioId = searchParams.get('servicioId');
@@ -95,11 +96,11 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitAction, setSubmitAction] = useState<'no-pay' | 'deposit' | null>(null);
   const [error, setError] = useState('');
 
-  const anticipo = Number(((servicioSeleccionado?.precio || 0) * 0.5).toFixed(2));
-  const restante = Number(((servicioSeleccionado?.precio || 0) - anticipo).toFixed(2));
+  const submitting = submitAction !== null;
+  const pagoTotal = Number((servicioSeleccionado?.precio || 0).toFixed(2));
 
   useEffect(() => {
     if (authLoading) return;
@@ -249,7 +250,7 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
       return;
     }
 
-    setSubmitting(true);
+    setSubmitAction('deposit');
     setError('');
     try {
       const preference = await paymentService.createAppointmentPreference({
@@ -267,14 +268,43 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
         barbero: selectedBarbero,
         fecha: selectedFecha,
         hora: selectedHora,
-        anticipo,
-        restante,
+        pagoTotal,
       }));
       window.location.href = preference.initPoint || preference.sandboxInitPoint || '';
     } catch (err: any) {
       setError(err.response?.data?.message || 'No pudimos iniciar el pago. Intenta nuevamente.');
     } finally {
-      setSubmitting(false);
+      setSubmitAction(null);
+    }
+  };
+
+  const handleBookWithoutPayment = async () => {
+    if (!servicioSeleccionado || !selectedLocal || !selectedBarbero || !selectedFecha || !selectedHora) {
+      setError('Completa todos los pasos antes de reservar.');
+      return;
+    }
+
+    setSubmitAction('no-pay');
+    setError('');
+    try {
+      await citaService.create({
+        clienteId: user?.id || 0,
+        localId: selectedLocal.id,
+        barberoId: selectedBarbero.barbero_id,
+        servicioId: servicioSeleccionado.id,
+        fecha: selectedFecha,
+        horaInicio: selectedHora,
+        estadoId: 1,
+        notas: 'Reserva creada sin pago desde el sitio web',
+        montoPagado: 0,
+      });
+      navigate('/mis-citas', {
+        state: { message: 'Tu cita fue reservada sin pago.' },
+      });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'No pudimos reservar la cita. Intenta nuevamente.');
+    } finally {
+      setSubmitAction(null);
     }
   };
 
@@ -358,7 +388,7 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
           <div style={headerStyle}>
             <div>
               <h1 style={titleStyle}>Agenda tu cita</h1>
-              <p style={subtitleStyle}>Selecciona los datos de tu reserva y paga el anticipo para apartar tu horario.</p>
+              <p style={subtitleStyle}>Selecciona los datos de tu reserva. Puedes reservar sin pagar o pagar el total ahora.</p>
             </div>
             <div style={pricePillStyle}>
               <span>Total</span>
@@ -370,7 +400,7 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
             <FontAwesomeIcon icon={faScissors} style={{ color: colors.doradoClasico }} />
             <div style={{ display: 'grid', gap: 4 }}>
               <strong>{servicioSeleccionado.nombre}</strong>
-              <span>{servicioSeleccionado.duracion} min · Anticipo {`$${anticipo.toFixed(2)}`}</span>
+              <span>{servicioSeleccionado.duracion} min · Pago completo {`$${pagoTotal.toFixed(2)}`}</span>
             </div>
           </div>
 
@@ -547,27 +577,34 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
 
           {step === 4 && selectedLocal && selectedBarbero && (
             <div>
-              <h2 style={sectionTitleStyle}>Confirma y paga tu anticipo</h2>
+              <h2 style={sectionTitleStyle}>Confirma tu cita</h2>
               <div style={summaryGridStyle}>
                 <SummaryItem icon={faMapMarkerAlt} label="Sucursal" value={selectedLocal.nombre} detail={selectedLocal.direccion} />
                 <SummaryItem icon={faUserTie} label="Barbero" value={selectedBarbero.nombre} detail={selectedBarbero.especialidad} />
                 <SummaryItem icon={faCalendarAlt} label="Fecha y hora" value={selectedFecha} detail={`${selectedHora.slice(0, 5)} hrs`} />
-                <SummaryItem icon={faDollarSign} label="Anticipo" value={`$${anticipo.toFixed(2)}`} detail={`Restante: $${restante.toFixed(2)}`} />
+                <SummaryItem icon={faDollarSign} label="Pago" value={`$${pagoTotal.toFixed(2)}`} detail="Total del servicio" />
               </div>
 
               <div style={paymentNoticeStyle}>
                 <FontAwesomeIcon icon={faCreditCard} />
-                <span>Para reservar tu horario se cobra el 50% del servicio con Mercado Pago.</span>
+                <span>Puedes reservar sin pagar ahora o confirmar tu horario pagando el total con Mercado Pago.</span>
               </div>
 
-              <FooterActions
-                back
-                nextLabel={submitting ? 'Redirigiendo...' : 'Pagar anticipo'}
-                nextIcon={submitting ? faSpinner : faCreditCard}
-                nextDisabled={submitting}
-                onBack={() => goToStep(3)}
-                onNext={handlePayment}
-              />
+              <div style={footerActionsStyle}>
+                <button type="button" style={secondaryButtonStyle} onClick={() => goToStep(3)} disabled={submitting}>
+                  <FontAwesomeIcon icon={faArrowLeft} /> Atrás
+                </button>
+                <div style={confirmButtonsStyle}>
+                  <button type="button" style={secondaryButtonStyle} disabled={submitting} onClick={handleBookWithoutPayment}>
+                    {submitAction === 'no-pay' ? 'Reservando...' : 'Reservar sin pagar'}
+                    <FontAwesomeIcon icon={submitAction === 'no-pay' ? faSpinner : faCheckCircle} spin={submitAction === 'no-pay'} />
+                  </button>
+                  <button type="button" style={buttonStyle} disabled={submitting} onClick={handlePayment}>
+                    {submitAction === 'deposit' ? 'Redirigiendo...' : 'Pagar ahora'}
+                    <FontAwesomeIcon icon={submitAction === 'deposit' ? faSpinner : faCreditCard} spin={submitAction === 'deposit'} />
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </section>
@@ -966,6 +1003,14 @@ const footerActionsStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 12,
   margin: '24px 32px 32px',
+  flexWrap: 'wrap',
+};
+
+const confirmButtonsStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: 12,
+  flexWrap: 'wrap',
 };
 
 const buttonStyle: React.CSSProperties = {

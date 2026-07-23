@@ -311,7 +311,7 @@ export const Home: React.FC = () => {
             Corte clasico, trato fino
           </motion.h1>
           <motion.p style={heroTextStyle} variants={fadeInUp}>
-            Reserva tu servicio con barberos profesionales, horarios disponibles y anticipo seguro para apartar tu lugar.
+            Reserva tu servicio con barberos profesionales, horarios disponibles y pago seguro para confirmar tu lugar.
           </motion.p>
           <motion.div style={heroActionsStyle} variants={fadeInUp}>
             <button type="button" style={primaryButtonStyle} onClick={() => navigate('/servicios')}>
@@ -427,7 +427,7 @@ export const Home: React.FC = () => {
 
             <motion.div style={featureListStyle} variants={staggerContainer}>
               {[
-                { icon: faCalendarCheck, title: 'Reserva con anticipo', text: 'Aparta tu horario pagando el 50% del servicio.' },
+                { icon: faCalendarCheck, title: 'Reserva con pago seguro', text: 'Confirma tu horario pagando el total del servicio.' },
                 { icon: faStar, title: 'Paquetes premium', text: 'Corte, barba, lavado, masaje y tratamientos segun el paquete.' },
                 { icon: faLocationDot, title: 'Atencion por sucursal', text: 'Consulta disponibilidad real antes de confirmar.' },
               ].map((item) => (

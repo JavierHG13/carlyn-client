@@ -54,7 +54,7 @@ export const PagoCitaResultado: React.FC = () => {
         const confirmation = await paymentService.confirmAppointmentPayment(paymentId);
         setCita(confirmation.data);
         setState('success');
-        setMessage('Tu anticipo fue aprobado y tu cita quedó reservada.');
+        setMessage('Tu pago fue aprobado y tu cita quedó reservada.');
         sessionStorage.removeItem('carlyn_pending_appointment');
       } catch (err: any) {
         if (err.response?.status === 202) {
@@ -104,7 +104,7 @@ export const PagoCitaResultado: React.FC = () => {
             <ReceiptRow label="Barbero" value={cita.barbero_nombre} icon={faUserTie} />
             <ReceiptRow label="Sucursal" value={cita.local_nombre || 'Barbería Carlyn'} detail={cita.local_direccion || undefined} icon={faMapMarkerAlt} />
             <ReceiptRow label="Fecha y hora" value={`${formatDate(cita.fecha)} · ${cita.hora_inicio.slice(0, 5)} hrs`} icon={faClock} />
-            <ReceiptRow label="Anticipo pagado" value={`$${Number(cita.monto_pagado || 0).toFixed(2)}`} detail={`Restante: $${Math.max(0, Number(cita.servicio_precio || 0) - Number(cita.monto_pagado || 0)).toFixed(2)}`} icon={faCreditCard} />
+            <ReceiptRow label="Total pagado" value={`$${Number(cita.monto_pagado || 0).toFixed(2)}`} icon={faCreditCard} />
           </div>
         )}
 
@@ -117,7 +117,7 @@ export const PagoCitaResultado: React.FC = () => {
             <ReceiptRow label="Servicio" value={pendingDraft.servicio?.nombre || 'Servicio seleccionado'} />
             <ReceiptRow label="Sucursal" value={pendingDraft.local?.nombre || 'Sucursal'} />
             <ReceiptRow label="Fecha y hora" value={`${pendingDraft.fecha || ''} · ${pendingDraft.hora || ''}`} />
-            <ReceiptRow label="Anticipo" value={`$${Number(pendingDraft.anticipo || 0).toFixed(2)}`} />
+            <ReceiptRow label="Total a pagar" value={`$${Number(pendingDraft.pagoTotal || pendingDraft.anticipo || 0).toFixed(2)}`} />
           </div>
         )}
 

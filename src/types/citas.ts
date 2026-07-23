@@ -72,6 +72,7 @@ export interface CreateCitaData {
   clienteId: number;
   barberoId: number;
   servicioId: number;
+  localId?: number;
   fecha: string;
   horaInicio: string;
   estadoId: number;
