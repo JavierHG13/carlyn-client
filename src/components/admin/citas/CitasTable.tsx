@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { Cita } from '../../../types/citas';
 import { colors } from '../../../styles/colors';
+import { formatDateOnly } from '../../../utils/dateUtils';
 
 interface CitasTableProps {
   citas: Cita[];
@@ -80,8 +81,7 @@ export const CitasTable: React.FC<CitasTableProps> = ({
   );
 
   const formatFecha = (fecha: string) => {
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-ES', {
+    return formatDateOnly(fecha, 'es-MX', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

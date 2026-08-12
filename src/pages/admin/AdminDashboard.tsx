@@ -15,7 +15,6 @@ import {
   faEye,
   faHourglassHalf,
   faMapMarkerAlt,
-  faMoneyBillTrendUp,
   faScissors,
   faTimesCircle,
   faUserTie,
@@ -27,6 +26,7 @@ import { AdminLayout } from '../../layouts/AdminLayout';
 import { colors } from '../../styles/colors';
 import api from '../../services/axios';
 import { useAuth } from '../../context/AuthContext';
+import { formatDateOnly, getDateOnlyKey, parseDateOnlyLocal } from '../../utils/dateUtils';
 
 interface CitaProxima {
   id: number;
@@ -73,7 +73,7 @@ export const AdminDashboard: React.FC = () => {
         api.get('/admin/usuarios?rol=Cliente&limit=1'),
         api.get('/barbero'),
         api.get('/servicios'),
-        api.get('/citas?fecha=' + new Date().toISOString().split('T')[0]),
+        api.get('/citas?fecha=' + getDateOnlyKey(new Date())),
       ]);
 
       setStats({
@@ -118,14 +118,17 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const formatFecha = (fecha: string) => {
-    const date = new Date(fecha);
+    const date = parseDateOnlyLocal(fecha);
+    if (!date) return '';
+
     const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
     const manana = new Date(hoy);
     manana.setDate(hoy.getDate() + 1);
 
     if (date.toDateString() === hoy.toDateString()) return 'Hoy';
     if (date.toDateString() === manana.toDateString()) return 'Manana';
-    return date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+    return formatDateOnly(fecha, 'es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
   const statCards = [
@@ -176,8 +179,7 @@ export const AdminDashboard: React.FC = () => {
 
   const intelligenceAccess = [
     { title: 'Prediccion', description: 'Analisis general', icon: faChartLine, path: '/admin/prediccion', color: '#0284C7' },
-    { title: 'No-show IA', description: 'Riesgo de inasistencia', icon: faBrain, path: '/admin/conocimiento/no-show', color: '#232A67' },
-    { title: 'Ingresos IA', description: 'Pronostico semanal', icon: faMoneyBillTrendUp, path: '/admin/conocimiento/ingresos', color: '#2B6A35' },
+    { title: 'No asistencia IA', description: 'Seguimiento de citas', icon: faBrain, path: '/admin/conocimiento/no-show', color: '#232A67' },
     { title: 'Segmentacion', description: 'Grupos de clientes', icon: faUsersViewfinder, path: '/admin/conocimiento/segmentacion', color: '#65519A' },
     { title: 'Base de Datos', description: 'Respaldo y estado', icon: faDatabase, path: '/admin/database', color: '#344054' },
   ];

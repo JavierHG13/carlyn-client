@@ -4,6 +4,7 @@ import { faCalendarAlt, faClock, faSave, faSpinner, faTimes } from '@fortawesome
 import type { CitaCliente } from '../../types/misCitas';
 import { misCitasService } from '../../services/misCitasService';
 import { colors } from '../../styles/colors';
+import { formatDateOnly, getDateOnlyKey } from '../../utils/dateUtils';
 
 interface ReagendarCitaModalProps {
   isOpen: boolean;
@@ -60,7 +61,7 @@ export const ReagendarCitaModal: React.FC<ReagendarCitaModalProps> = ({
 
   if (!isOpen || !cita) return null;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateOnlyKey(new Date());
 
   const handleSubmit = async () => {
     if (!fecha || !hora) {
@@ -126,7 +127,7 @@ export const ReagendarCitaModal: React.FC<ReagendarCitaModalProps> = ({
         <div style={{ backgroundColor: '#F8FAFC', borderRadius: 8, padding: 14, marginBottom: 18 }}>
           <strong>{cita.servicio_nombre}</strong>
           <div style={{ color: '#718096', fontSize: 13, marginTop: 4 }}>
-            Actual: {new Date(cita.fecha).toLocaleDateString()} · {cita.hora_inicio.slice(0, 5)} hrs
+            Actual: {formatDateOnly(cita.fecha)} · {cita.hora_inicio.slice(0, 5)} hrs
           </div>
         </div>
 

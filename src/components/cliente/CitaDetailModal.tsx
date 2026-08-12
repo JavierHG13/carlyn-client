@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { CitaCliente } from '../../types/misCitas';
 import { colors } from '../../styles/colors';
+import { formatDateOnly } from '../../utils/dateUtils';
 
 interface CitaDetailModalProps {
     isOpen: boolean;
@@ -25,8 +26,7 @@ export const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClos
     if (!isOpen || !cita) return null;
 
     const formatFecha = (fecha: string) => {
-        const date = new Date(fecha);
-        return date.toLocaleDateString('es-ES', {
+        return formatDateOnly(fecha, 'es-MX', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',

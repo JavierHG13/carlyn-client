@@ -18,6 +18,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { CitaCliente } from '../../types/misCitas';
 import { colors } from '../../styles/colors';
+import { formatDateOnly, parseAppointmentDateTimeLocal } from '../../utils/dateUtils';
 
 interface CitaCardProps {
     cita: CitaCliente;
@@ -43,8 +44,7 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
     };
 
     const formatFecha = (fecha: string) => {
-        const date = new Date(fecha);
-        return date.toLocaleDateString('es-ES', {
+        return formatDateOnly(fecha, 'es-MX', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
@@ -54,7 +54,8 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
 
     const estadoConfig = getEstadoConfig(cita.estado_nombre);
     const puedeCancelar = cita.estado_nombre === 'Pendiente' || cita.estado_nombre === 'Confirmada';
-    const esPasada = new Date(cita.fecha) < new Date();
+    const fechaCita = parseAppointmentDateTimeLocal(cita.fecha, cita.hora_fin || cita.hora_inicio);
+    const esPasada = fechaCita ? fechaCita < new Date() : false;
     const pagoRequerido = cita.estado_nombre === 'Pendiente' && Number(cita.monto_pagado || 0) <= 0;
 
     const cardStyle: React.CSSProperties = {

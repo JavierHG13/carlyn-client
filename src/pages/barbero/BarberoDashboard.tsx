@@ -19,6 +19,7 @@ import { barberoService } from '../../services/barberoService';
 import { citaService } from '../../services/citasService';
 import type { Barbero, CitaBarbero, Horario, ResumenBarbero } from '../../types/barbero';
 import { colors } from '../../styles/colors';
+import { formatDateOnly } from '../../utils/dateUtils';
 
 type Tab = 'inicio' | 'agenda' | 'historial' | 'horarios' | 'perfil';
 
@@ -468,7 +469,7 @@ const CitasList = ({ citas, onComplete, onCancel, saving, compact = false }: {
   );
 };
 
-const formatDate = (value: string) => new Date(value).toLocaleDateString('es-MX', {
+const formatDate = (value: string) => formatDateOnly(value, 'es-MX', {
   weekday: 'short',
   day: '2-digit',
   month: 'short',

@@ -19,11 +19,7 @@ import { CitaDetailModal } from '../../components/cliente/CitaDetailModal';
 import { CancelarCitaModal } from '../../components/cliente/CancelarCitaModal';
 import { ReagendarCitaModal } from '../../components/cliente/ReagendarCitaModal';
 import { colors } from '../../styles/colors';
-
-const parseDateKey = (fecha: string) => {
-    const [year, month, day] = String(fecha).slice(0, 10).split('-').map(Number);
-    return new Date(year, (month || 1) - 1, day || 1);
-};
+import { formatDateOnly, parseAppointmentDateTimeLocal, parseDateOnlyLocal } from '../../utils/dateUtils';
 
 export const MisCitas: React.FC = () => {
     const navigate = useNavigate();
@@ -47,8 +43,8 @@ export const MisCitas: React.FC = () => {
             setLoading(true);
             const data = await misCitasService.getAll();
             const ordered = [...data].sort((a, b) => {
-                const dateA = new Date(`${String(a.fecha).slice(0, 10)}T${a.hora_inicio}`).getTime();
-                const dateB = new Date(`${String(b.fecha).slice(0, 10)}T${b.hora_inicio}`).getTime();
+                const dateA = parseAppointmentDateTimeLocal(a.fecha, a.hora_inicio)?.getTime() || 0;
+                const dateB = parseAppointmentDateTimeLocal(b.fecha, b.hora_inicio)?.getTime() || 0;
                 return dateB - dateA;
             });
             setCitas(ordered);
@@ -116,8 +112,8 @@ export const MisCitas: React.FC = () => {
                 return citas.filter(c => c.estado_nombre === 'Cancelada');
             case 'proximas':
                 return citas.filter(c => {
-                    const fechaCita = parseDateKey(c.fecha);
-                    return fechaCita >= hoy && (c.estado_nombre === 'Pendiente' || c.estado_nombre === 'Confirmada');
+                    const fechaCita = parseDateOnlyLocal(c.fecha);
+                    return !!fechaCita && fechaCita >= hoy && (c.estado_nombre === 'Pendiente' || c.estado_nombre === 'Confirmada');
                 });
             default:
                 return citas;
@@ -335,7 +331,7 @@ export const MisCitas: React.FC = () => {
                 citaInfo={selectedCita ? {
                     id: selectedCita.id,
                     servicio: selectedCita.servicio_nombre,
-                    fecha: new Date(selectedCita.fecha).toLocaleDateString(),
+                    fecha: formatDateOnly(selectedCita.fecha),
                     hora: selectedCita.hora_inicio.slice(0, 5),
                 } : undefined}
                 loading={cancelLoading}

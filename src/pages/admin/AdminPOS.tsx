@@ -17,9 +17,10 @@ import { barberoService } from '../../services/barberoService';
 import { localService, type Local } from '../../services/localService';
 import type { Cita } from '../../types/citas';
 import type { Barbero } from '../../types/barbero';
+import { getDateOnlyKey } from '../../utils/dateUtils';
 
 export const AdminPOS: React.FC = () => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateOnlyKey(new Date());
   const [fecha, setFecha] = useState(today);
   const [localId, setLocalId] = useState(0);
   const [barberoId, setBarberoId] = useState(0);

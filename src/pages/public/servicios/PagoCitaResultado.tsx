@@ -14,6 +14,7 @@ import {
 import { paymentService } from '../../../services/paymentService';
 import type { Cita } from '../../../types/citas';
 import { colors } from '../../../styles/colors';
+import { formatDateOnly } from '../../../utils/dateUtils';
 
 type ResultState = 'loading' | 'success' | 'pending' | 'error';
 
@@ -150,8 +151,7 @@ export const PagoCitaResultado: React.FC = () => {
 };
 
 const formatDate = (fecha: string) => {
-  const date = new Date(fecha);
-  return date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return formatDateOnly(fecha, 'es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 const ReceiptRow = ({ label, value, detail, icon }: { label: string; value: string; detail?: string; icon?: any }) => (

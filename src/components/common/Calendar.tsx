@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { colors } from '../../styles/colors';
+import { getDateOnlyKey } from '../../utils/dateUtils';
 
 interface CalendarProps {
   selectedDate: string;
@@ -18,7 +19,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   maxDate,
   disabledDates = [],
 }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -33,7 +34,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   };
 
   const isDateDisabled = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = getDateOnlyKey(date);
     
     // Verificar si es menor que la fecha mínima
     if (minDate && date < new Date(minDate.setHours(0, 0, 0, 0))) {
@@ -87,10 +88,10 @@ export const Calendar: React.FC<CalendarProps> = ({
     // Días del mes
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = getDateOnlyKey(date);
       const isSelected = dateStr === selectedDate;
       const isDisabled = isDateDisabled(date);
-      const isToday = new Date().toISOString().split('T')[0] === dateStr;
+      const isToday = getDateOnlyKey(new Date()) === dateStr;
 
       days.push(
         <button

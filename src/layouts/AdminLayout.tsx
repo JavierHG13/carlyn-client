@@ -17,7 +17,6 @@ import {
   faMapMarkerAlt,
   faCashRegister,
   faBrain,
-  faMoneyBillTrendUp,
   faUsersViewfinder,
 } from '@fortawesome/free-solid-svg-icons';
 import { colors } from '../styles/colors';
@@ -44,8 +43,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: faClock, label: 'Horarios', path: '/admin/horarios' },
     { icon: faScissors, label: 'Servicios', path: '/admin/servicios' },
     { icon: faChartLine, label: 'Prediccion', path: '/admin/prediccion' },
-    { icon: faBrain, label: 'No-show', path: '/admin/conocimiento/no-show' },
-    { icon: faMoneyBillTrendUp, label: 'Ingresos IA', path: '/admin/conocimiento/ingresos' },
+    { icon: faBrain, label: 'No asistencia', path: '/admin/conocimiento/no-show' },
     { icon: faUsersViewfinder, label: 'Segmentacion', path: '/admin/conocimiento/segmentacion' },
     { icon: faDatabase, label: 'Base de Datos', path: '/admin/database' },
   ];

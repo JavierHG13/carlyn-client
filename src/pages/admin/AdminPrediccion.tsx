@@ -15,6 +15,7 @@ import {
 import { PrediccionChart } from '../../components/admin/prediccion/PrediccionChart';
 import { prediccionService } from '../../services/prediccionService';
 import { colors } from '../../styles/colors';
+import { formatDateOnly } from '../../utils/dateUtils';
 
 // ─── Fuentes ────────────────────────────────────────────────────────────────
 const fontLink = document.createElement('link');
@@ -136,7 +137,7 @@ const CitasMesModal: React.FC<{
                             <tbody>
                                 {citas.map((cita, idx) => (
                                     <tr key={idx}>
-                                        <td style={td}>{new Date(cita.fecha).toLocaleDateString()}</td>
+                                        <td style={td}>{formatDateOnly(cita.fecha)}</td>
                                         <td style={td}>{cita.cliente_nombre}</td>
                                         <td style={td}>{cita.servicio_nombre}</td>
                                         <td style={td}>{cita.barbero_nombre}</td>

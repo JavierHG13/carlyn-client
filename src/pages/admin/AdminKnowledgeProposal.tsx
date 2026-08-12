@@ -8,6 +8,7 @@ import {
   faChartPie,
   faChevronRight,
   faClock,
+  faEnvelope,
   faExclamationTriangle,
   faFilter,
   faMoneyBillTrendUp,
@@ -25,8 +26,8 @@ type ModuleKey = 'no-show' | 'ingresos' | 'segmentacion';
 
 const modules = {
   'no-show': {
-    title: 'Riesgo de inasistencia',
-    subtitle: 'Citas con mayor probabilidad de cancelacion o no-show',
+    title: 'No asistencia',
+    subtitle: 'Seguimiento de citas que requieren confirmacion antes del servicio',
     accent: '#232A67',
     icon: faExclamationTriangle,
   },
@@ -45,8 +46,7 @@ const modules = {
 } as const;
 
 const tabs: Array<{ key: ModuleKey; label: string }> = [
-  { key: 'no-show', label: 'No-show' },
-  { key: 'ingresos', label: 'Ingresos' },
+  { key: 'no-show', label: 'No asistencia' },
   { key: 'segmentacion', label: 'Clientes' },
 ];
 
@@ -61,6 +61,8 @@ interface NoShowCita {
   fecha: string;
   hora: string;
   cliente: string;
+  telefono?: string;
+  email?: string;
   servicio: string;
   riesgo: number;
   nivel: string;
@@ -199,25 +201,100 @@ const kpiCard = (label: string, value: string, hint: string, color: string, icon
 );
 
 const statusPill = (text: string) => {
-  const tone = text === 'Alto'
-    ? ['#FEE2E2', '#B91C1C']
-    : text === 'Medio'
-      ? ['#FEF3C7', '#92400E']
-      : ['#DCFCE7', '#166534'];
+  const statusConfig: Record<string, { bg: string; color: string; border: string; label: string }> = {
+    Alta: { bg: '#FEF2F2', color: '#B42318', border: '#FECACA', label: 'Alta' },
+    Media: { bg: '#FFFBEB', color: '#B54708', border: '#FEDF89', label: 'Media' },
+    Baja: { bg: '#F0FDF4', color: '#027A48', border: '#BBF7D0', label: 'Baja' },
+    'Alta prioridad': { bg: '#FEF2F2', color: '#B42318', border: '#FECACA', label: 'Alta' },
+    'Prioridad media': { bg: '#FFFBEB', color: '#B54708', border: '#FEDF89', label: 'Media' },
+    'En observacion': { bg: '#F0FDF4', color: '#027A48', border: '#BBF7D0', label: 'Baja' },
+  };
+  const tone = statusConfig[text] || statusConfig.Baja;
 
   return (
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
+      gap: '7px',
       borderRadius: '999px',
-      padding: '5px 10px',
-      background: tone[0],
-      color: tone[1],
+      padding: '7px 12px',
+      background: tone.bg,
+      color: tone.color,
+      border: `1px solid ${tone.border}`,
       fontSize: '12px',
       fontWeight: 800,
+      whiteSpace: 'nowrap',
     }}>
-      {text}
+      <span style={{
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: tone.color,
+        display: 'inline-block',
+      }} />
+      {tone.label}
     </span>
+  );
+};
+
+const contactCell = (row: NoShowCita) => {
+  const phone = row.telefono?.trim();
+  const email = row.email?.trim();
+  const whatsapp = phone ? `https://wa.me/52${phone.replace(/\D/g, '').replace(/^52/, '')}` : '';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <strong style={{ color: '#111827', fontSize: 13 }}>{row.cliente}</strong>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+        {phone && (
+          <a
+            href={whatsapp}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 9px',
+              borderRadius: 999,
+              background: '#ECFDF5',
+              color: '#047857',
+              border: '1px solid #BBF7D0',
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            <FontAwesomeIcon icon={faPhone} />
+            {phone}
+          </a>
+        )}
+        {email && (
+          <a
+            href={`mailto:${email}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 9px',
+              borderRadius: 999,
+              background: '#F8FAFC',
+              color: '#475569',
+              border: '1px solid #E2E8F0',
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            <FontAwesomeIcon icon={faEnvelope} />
+            Correo
+          </a>
+        )}
+        {!phone && !email && (
+          <span style={{ color: '#94A3B8', fontSize: 12 }}>Sin contacto</span>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -311,22 +388,36 @@ export const AdminKnowledgeProposal: React.FC = () => {
     return (
       <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '18px' }}>
-          {kpiCard('Citas en riesgo', String(kpis.citasEnRiesgo || 0), 'para proximos dias', current.accent, faCalendarCheck)}
+          {kpiCard('Citas por revisar', String(kpis.citasEnRiesgo || 0), 'para proximos dias', current.accent, faCalendarCheck)}
           {kpiCard('Riesgo alto', String(kpis.riesgoAlto || 0), 'requieren confirmacion manual', '#DC2626', faExclamationTriangle)}
           {kpiCard('Horarios recuperables', `${kpis.horariosRecuperables || 0}h`, 'si se confirma a tiempo', '#0EA5E9', faClock)}
           {kpiCard('Recordatorios sugeridos', String(kpis.recordatoriosSugeridos || 0), 'WhatsApp, llamada o correo', '#D97706', faBell)}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(280px, 0.8fr)', gap: '18px' }}>
-          <section style={panelStyle}>
+          <section style={{
+            ...panelStyle,
+            padding: 0,
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '22px 22px 8px' }}>
             <h3 style={panelTitleStyle}>
               <FontAwesomeIcon icon={faFilter} style={{ color: current.accent }} />
-              Citas que requieren seguimiento
+              Citas con seguimiento pendiente
             </h3>
+            <p style={{
+              margin: '-8px 0 14px 28px',
+              color: '#64748B',
+              fontSize: '13px',
+              lineHeight: 1.5,
+            }}>
+              Revisa el riesgo de inasistencia de cada cita y decide si necesita confirmacion manual.
+            </p>
+            </div>
             <table style={tableStyle}>
               <thead>
                 <tr>
-                  {['Fecha', 'Hora', 'Cliente', 'Servicio', 'Riesgo', 'Estado'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                  {['Fecha', 'Hora', 'Cliente y contacto', 'Servicio', 'Riesgo de inasistencia'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -334,9 +425,8 @@ export const AdminKnowledgeProposal: React.FC = () => {
                   <tr key={row.id}>
                     <td style={tdStyle}>{String(row.fecha).slice(0, 10)}</td>
                     <td style={tdStyle}>{row.hora}</td>
-                    <td style={tdStyle}>{row.cliente}</td>
+                    <td style={tdStyle}>{contactCell(row)}</td>
                     <td style={tdStyle}>{row.servicio}</td>
-                    <td style={tdStyle}>{row.riesgo}%</td>
                     <td style={tdStyle}>{statusPill(row.nivel)}</td>
                   </tr>
                 ))}
@@ -438,9 +528,6 @@ export const AdminKnowledgeProposal: React.FC = () => {
             <div key={segment.nombre} style={{ ...panelStyle, padding: '18px', borderTop: `4px solid ${segment.color}` }}>
               <div style={{ fontSize: '24px', fontWeight: 900, color: segment.color }}>{segment.total} clientes</div>
               <div style={{ marginTop: '6px', fontWeight: 800 }}>{segment.nombre}</div>
-              <div style={{ marginTop: '6px', color: '#64748B', fontSize: '13px', lineHeight: 1.5 }}>
-                Ticket prom. {money(segment.gastoPromedio)} - no-show {segment.noShowPromedio}%
-              </div>
             </div>
           ))}
         </div>
