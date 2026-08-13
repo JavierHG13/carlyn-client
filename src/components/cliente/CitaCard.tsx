@@ -29,6 +29,8 @@ interface CitaCardProps {
     paying?: boolean;
 }
 
+const CLIENT_CANCELLATION_LIMIT_MINUTES = 60;
+
 export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetalle, onReagendar, onPagarAnticipo, paying }) => {
     const [expanded, setExpanded] = useState(false);
 
@@ -54,8 +56,17 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
 
     const estadoConfig = getEstadoConfig(cita.estado_nombre);
     const puedeCancelar = cita.estado_nombre === 'Pendiente' || cita.estado_nombre === 'Confirmada';
+    const fechaInicioCita = parseAppointmentDateTimeLocal(cita.fecha, cita.hora_inicio);
     const fechaCita = parseAppointmentDateTimeLocal(cita.fecha, cita.hora_fin || cita.hora_inicio);
     const esPasada = fechaCita ? fechaCita < new Date() : false;
+    const minutosParaInicio = fechaInicioCita
+        ? Math.floor((fechaInicioCita.getTime() - Date.now()) / 60000)
+        : null;
+    const cancelacionCerrada =
+        puedeCancelar &&
+        !esPasada &&
+        minutosParaInicio !== null &&
+        minutosParaInicio <= CLIENT_CANCELLATION_LIMIT_MINUTES;
     const pagoRequerido = cita.estado_nombre === 'Pendiente' && Number(cita.monto_pagado || 0) <= 0;
 
     const cardStyle: React.CSSProperties = {
@@ -248,7 +259,23 @@ export const CitaCard: React.FC<CitaCardProps> = ({ cita, onCancelar, onVerDetal
                             </button>
                         )}
 
-                        {puedeCancelar && !esPasada && (
+                        {puedeCancelar && !esPasada && cancelacionCerrada && (
+                            <div style={{
+                                padding: '9px 12px',
+                                borderRadius: 8,
+                                border: '1px solid #FDE68A',
+                                backgroundColor: '#FFFBEB',
+                                color: '#B45309',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}>
+                                Cancelacion cerrada. Contacta a la barberia.
+                            </div>
+                        )}
+
+                        {puedeCancelar && !esPasada && !cancelacionCerrada && (
                             <button
                                 style={buttonStyle('#EF4444')}
                                 onClick={() => onCancelar(cita.id)}

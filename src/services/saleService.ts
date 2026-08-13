@@ -1,4 +1,5 @@
 import api from './axios';
+import type { Cita } from '../types/citas';
 
 export interface SaleItemInput {
   productoId: number;
@@ -23,6 +24,18 @@ export interface SaleRecord {
   }>;
 }
 
+export interface WalkInServiceInput {
+  localId: number;
+  barberoId: number;
+  servicioId: number;
+  fecha: string;
+  horaInicio: string;
+  metodoPago: 'efectivo' | 'transferencia' | 'tarjeta';
+  clienteNombre?: string;
+  clienteTelefono?: string;
+  notas?: string;
+}
+
 export const saleService = {
   getByDay: async (fecha?: string) => {
     const response = await api.get('/admin/pos/ventas', { params: fecha ? { fecha } : undefined });
@@ -42,5 +55,10 @@ export const saleService = {
   cashCut: async (fecha?: string) => {
     const response = await api.post('/admin/pos/ventas/corte-caja', fecha ? { fecha } : {});
     return response.data.data;
+  },
+
+  registerWalkInService: async (data: WalkInServiceInput) => {
+    const response = await api.post('/admin/pos/servicios-mostrador', data);
+    return response.data.data as Cita;
   },
 };

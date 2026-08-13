@@ -5,9 +5,13 @@ import {
   faCashRegister,
   faClock,
   faMapMarkerAlt,
+  faMoneyBillWave,
+  faPhone,
   faReceipt,
   faRotateRight,
+  faSave,
   faScissors,
+  faUser,
   faUserTie,
 } from '@fortawesome/free-solid-svg-icons';
 import { AdminLayout } from '../../layouts/AdminLayout';
@@ -15,9 +19,21 @@ import { colors } from '../../styles/colors';
 import { citaService } from '../../services/citasService';
 import { barberoService } from '../../services/barberoService';
 import { localService, type Local } from '../../services/localService';
+import { saleService, type WalkInServiceInput } from '../../services/saleService';
+import { servicioService } from '../../services/servicioService';
 import type { Cita } from '../../types/citas';
 import type { Barbero } from '../../types/barbero';
+import type { Servicio } from '../../types/servicio';
 import { getDateOnlyKey } from '../../utils/dateUtils';
+
+type PaymentMethod = WalkInServiceInput['metodoPago'];
+
+const getCurrentTimeInput = () => {
+  const date = new Date();
+  const roundedMinutes = Math.ceil(date.getMinutes() / 10) * 10;
+  date.setMinutes(roundedMinutes, 0, 0);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
 
 export const AdminPOS: React.FC = () => {
   const today = getDateOnlyKey(new Date());
@@ -28,8 +44,20 @@ export const AdminPOS: React.FC = () => {
   const [citas, setCitas] = useState<Cita[]>([]);
   const [locales, setLocales] = useState<Local[]>([]);
   const [barberos, setBarberos] = useState<Barbero[]>([]);
+  const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingWalkIn, setSavingWalkIn] = useState(false);
   const [message, setMessage] = useState('');
+  const [walkInForm, setWalkInForm] = useState({
+    localId: '',
+    barberoId: '',
+    servicioId: '',
+    horaInicio: getCurrentTimeInput(),
+    metodoPago: 'efectivo' as PaymentMethod,
+    clienteNombre: '',
+    clienteTelefono: '',
+    notas: '',
+  });
 
   useEffect(() => {
     loadCatalogs();
@@ -37,7 +65,7 @@ export const AdminPOS: React.FC = () => {
 
   useEffect(() => {
     if (completedEstadoId) {
-      loadCompletedAppointments();
+      loadPointOfSaleDay();
     }
   }, [fecha, localId, barberoId, completedEstadoId]);
 
@@ -45,10 +73,11 @@ export const AdminPOS: React.FC = () => {
     try {
       setLoading(true);
       setMessage('');
-      const [estadosResponse, localesResponse, barberosResponse] = await Promise.all([
+      const [estadosResponse, localesResponse, barberosResponse, serviciosResponse] = await Promise.all([
         citaService.getEstados(),
         localService.getActivos(),
         barberoService.getAll(),
+        servicioService.getAll({ activo: true }),
       ]);
 
       const completada = estadosResponse.find((estado) => estado.nombre.toLowerCase() === 'completada');
@@ -60,6 +89,19 @@ export const AdminPOS: React.FC = () => {
       setCompletedEstadoId(completada.id);
       setLocales(localesResponse);
       setBarberos(barberosResponse);
+      setServicios(serviciosResponse);
+
+      const defaultLocalId = localesResponse[0]?.id;
+      const defaultBarber = defaultLocalId
+        ? barberosResponse.find((barbero) => Number(barbero.local_id) === Number(defaultLocalId))
+        : barberosResponse[0];
+
+      setWalkInForm((prev) => ({
+        ...prev,
+        localId: prev.localId || (defaultLocalId ? String(defaultLocalId) : ''),
+        barberoId: prev.barberoId || (defaultBarber?.barbero_id ? String(defaultBarber.barbero_id) : ''),
+        servicioId: prev.servicioId || (serviciosResponse[0]?.id ? String(serviciosResponse[0].id) : ''),
+      }));
     } catch (error: any) {
       setMessage(error.response?.data?.message || 'No se pudo cargar la informacion del POS');
     } finally {
@@ -67,7 +109,7 @@ export const AdminPOS: React.FC = () => {
     }
   };
 
-  const loadCompletedAppointments = async () => {
+  const loadPointOfSaleDay = async () => {
     if (!completedEstadoId) return;
 
     try {
@@ -76,57 +118,85 @@ export const AdminPOS: React.FC = () => {
       const response = await citaService.search({
         fechaInicio: fecha,
         fechaFin: fecha,
-        estadoId: completedEstadoId,
         localId: localId || undefined,
         barberoId: barberoId || undefined,
         page: 1,
-        limit: 200,
+        limit: 300,
       });
       setCitas(response.data || []);
     } catch (error: any) {
-      setMessage(error.response?.data?.message || 'No se pudieron cargar las citas completadas');
+      setMessage(error.response?.data?.message || 'No se pudo cargar la informacion del dia');
       setCitas([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const normalizeStatus = (status?: string | null) => String(status || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/_/g, ' ')
+    .trim();
+
+  const getPaymentAmount = (cita: Cita) => Number(cita.monto_pagado || cita.servicio_precio || 0);
+
+  const serviciosPagados = useMemo(
+    () => citas.filter((cita) => normalizeStatus(cita.estado_nombre) === 'completada' && getPaymentAmount(cita) > 0),
+    [citas]
+  );
+
+  const citasPorConcluir = useMemo(
+    () => citas.filter((cita) => {
+      const estado = normalizeStatus(cita.estado_nombre);
+      return !['completada', 'cancelada', 'no asistio', 'no-show'].includes(estado);
+    }),
+    [citas]
+  );
+
   const filteredBarberos = useMemo(
     () => localId ? barberos.filter((barbero) => Number(barbero.local_id) === localId) : barberos,
     [barberos, localId]
   );
 
-  const totalServicios = useMemo(
-    () => citas.reduce((sum, cita) => sum + Number(cita.servicio_precio || 0), 0),
-    [citas]
+  const walkInBarberos = useMemo(
+    () => walkInForm.localId
+      ? barberos.filter((barbero) => Number(barbero.local_id) === Number(walkInForm.localId))
+      : barberos,
+    [barberos, walkInForm.localId]
+  );
+
+  const selectedWalkInService = useMemo(
+    () => servicios.find((servicio) => Number(servicio.id) === Number(walkInForm.servicioId)),
+    [servicios, walkInForm.servicioId]
   );
 
   const totalPagado = useMemo(
-    () => citas.reduce((sum, cita) => sum + Number(cita.monto_pagado || cita.servicio_precio || 0), 0),
-    [citas]
+    () => serviciosPagados.reduce((sum, cita) => sum + getPaymentAmount(cita), 0),
+    [serviciosPagados]
   );
 
-  const ticketPromedio = citas.length ? totalPagado / citas.length : 0;
+  const ticketPromedio = serviciosPagados.length ? totalPagado / serviciosPagados.length : 0;
 
   const groupedByBarber = useMemo(() => {
     const groups = new Map<number, { id: number; nombre: string; total: number; citas: number }>();
-    citas.forEach((cita) => {
+    serviciosPagados.forEach((cita) => {
       const current = groups.get(cita.barbero_id) || {
         id: cita.barbero_id,
         nombre: cita.barbero_nombre || 'Sin barbero',
         total: 0,
         citas: 0,
       };
-      current.total += Number(cita.monto_pagado || cita.servicio_precio || 0);
+      current.total += getPaymentAmount(cita);
       current.citas += 1;
       groups.set(cita.barbero_id, current);
     });
     return Array.from(groups.values()).sort((a, b) => b.total - a.total);
-  }, [citas]);
+  }, [serviciosPagados]);
 
   const groupedByLocal = useMemo(() => {
     const groups = new Map<number, { id: number; nombre: string; total: number; citas: number }>();
-    citas.forEach((cita) => {
+    serviciosPagados.forEach((cita) => {
       const id = Number(cita.local_id || 0);
       const current = groups.get(id) || {
         id,
@@ -134,12 +204,12 @@ export const AdminPOS: React.FC = () => {
         total: 0,
         citas: 0,
       };
-      current.total += Number(cita.monto_pagado || cita.servicio_precio || 0);
+      current.total += getPaymentAmount(cita);
       current.citas += 1;
       groups.set(id, current);
     });
     return Array.from(groups.values()).sort((a, b) => b.total - a.total);
-  }, [citas]);
+  }, [serviciosPagados]);
 
   const formatCurrency = (amount: number) => `$${Number(amount || 0).toLocaleString('es-MX', {
     minimumFractionDigits: 2,
@@ -148,15 +218,72 @@ export const AdminPOS: React.FC = () => {
 
   const formatTime = (time?: string | null) => String(time || '').slice(0, 5);
 
+  const updateWalkInForm = (field: keyof typeof walkInForm, value: string) => {
+    setWalkInForm((prev) => {
+      const next = { ...prev, [field]: value };
+
+      if (field === 'localId') {
+        const nextBarbero = barberos.find((barbero) => Number(barbero.local_id) === Number(value));
+        next.barberoId = nextBarbero?.barbero_id ? String(nextBarbero.barbero_id) : '';
+      }
+
+      return next;
+    });
+  };
+
+  const handleRegisterWalkInService = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!walkInForm.localId || !walkInForm.barberoId || !walkInForm.servicioId || !walkInForm.horaInicio) {
+      setMessage('Completa sucursal, barbero, servicio y hora.');
+      return;
+    }
+
+    try {
+      setSavingWalkIn(true);
+      setMessage('');
+      await saleService.registerWalkInService({
+        localId: Number(walkInForm.localId),
+        barberoId: Number(walkInForm.barberoId),
+        servicioId: Number(walkInForm.servicioId),
+        fecha,
+        horaInicio: walkInForm.horaInicio,
+        metodoPago: walkInForm.metodoPago,
+        clienteNombre: walkInForm.clienteNombre.trim() || 'Cliente mostrador',
+        clienteTelefono: walkInForm.clienteTelefono.trim() || undefined,
+        notas: walkInForm.notas.trim() || undefined,
+      });
+
+      setMessage('Servicio de mostrador registrado como cita completada y pagada.');
+      setWalkInForm((prev) => ({
+        ...prev,
+        clienteNombre: '',
+        clienteTelefono: '',
+        notas: '',
+        horaInicio: getCurrentTimeInput(),
+      }));
+      await loadPointOfSaleDay();
+    } catch (error: any) {
+      setMessage(error.response?.data?.message || 'No se pudo registrar el servicio de mostrador');
+    } finally {
+      setSavingWalkIn(false);
+    }
+  };
+
   const pageStyle: React.CSSProperties = { width: '100%' };
 
   const headerStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 20,
-    flexWrap: 'wrap',
+    display: 'grid',
+    gridTemplateColumns: 'minmax(280px, 0.8fr) minmax(0, 1.2fr)',
+    alignItems: 'center',
+    gap: 24,
     marginBottom: 22,
+    padding: 22,
+    border: '1px solid #E2E8F0',
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0 18px 42px rgba(15, 23, 42, 0.04)',
+    overflow: 'hidden',
   };
 
   const titleStyle: React.CSSProperties = {
@@ -178,13 +305,19 @@ export const AdminPOS: React.FC = () => {
 
   const toolbarStyle: React.CSSProperties = {
     display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 10,
-    flexWrap: 'wrap',
+    width: '100%',
+    minWidth: 0,
   };
 
   const inputStyle: React.CSSProperties = {
     height: 46,
+    width: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     padding: '0 14px',
     border: '1px solid #D9E1EC',
     borderRadius: 12,
@@ -192,6 +325,14 @@ export const AdminPOS: React.FC = () => {
     backgroundColor: '#FFFFFF',
     color: '#101828',
     outline: 'none',
+  };
+
+  const toolbarInputStyle: React.CSSProperties = {
+    ...inputStyle,
+    height: 44,
+    width: 'auto',
+    flex: '1 1 170px',
+    maxWidth: 260,
   };
 
   const buttonStyle = (bg: string, color = '#FFFFFF'): React.CSSProperties => ({
@@ -207,6 +348,8 @@ export const AdminPOS: React.FC = () => {
     gap: 8,
     fontWeight: 800,
     fontSize: 14,
+    whiteSpace: 'nowrap',
+    flex: '0 0 auto',
   });
 
   const summaryGridStyle: React.CSSProperties = {
@@ -222,6 +365,7 @@ export const AdminPOS: React.FC = () => {
     backgroundColor: '#FFFFFF',
     padding: 22,
     boxShadow: '0 16px 36px rgba(15, 23, 42, 0.05)',
+    minWidth: 0,
   };
 
   const statCardStyle: React.CSSProperties = {
@@ -246,8 +390,23 @@ export const AdminPOS: React.FC = () => {
 
   const layoutGridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.45fr) minmax(360px, 0.7fr)',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 360px)',
     gap: 20,
+    alignItems: 'start',
+  };
+
+  const formGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: 12,
+    alignItems: 'end',
+  };
+
+  const formWideGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: 12,
+    alignItems: 'end',
   };
 
   const tableStyle: React.CSSProperties = {
@@ -292,14 +451,14 @@ export const AdminPOS: React.FC = () => {
           <div>
             <h1 style={titleStyle}>
               <FontAwesomeIcon icon={faCashRegister} style={{ color: colors.doradoClasico }} />
-              POS y corte del dia
+              POS y servicios del dia
             </h1>
-            <p style={subtitleStyle}>Consulta solo citas completadas por fecha, sucursal y barbero.</p>
+            <p style={subtitleStyle}>Separa servicios pagados de citas que siguen pendientes por concluir.</p>
           </div>
 
           <div style={toolbarStyle}>
-            <input type="date" style={inputStyle} value={fecha} onChange={(event) => setFecha(event.target.value)} />
-            <select style={{ ...inputStyle, minWidth: 190 }} value={localId} onChange={(event) => {
+            <input type="date" style={toolbarInputStyle} value={fecha} onChange={(event) => setFecha(event.target.value)} />
+            <select style={toolbarInputStyle} value={localId} onChange={(event) => {
               setLocalId(Number(event.target.value));
               setBarberoId(0);
             }}>
@@ -308,19 +467,19 @@ export const AdminPOS: React.FC = () => {
                 <option key={local.id} value={local.id}>{local.nombre}</option>
               ))}
             </select>
-            <select style={{ ...inputStyle, minWidth: 190 }} value={barberoId} onChange={(event) => setBarberoId(Number(event.target.value))}>
+            <select style={toolbarInputStyle} value={barberoId} onChange={(event) => setBarberoId(Number(event.target.value))}>
               <option value={0}>Todos los barberos</option>
               {filteredBarberos.map((barbero) => (
                 <option key={barbero.barbero_id} value={barbero.barbero_id}>{barbero.nombre}</option>
               ))}
             </select>
-            <button style={buttonStyle('#E2E8F0', '#475467')} onClick={loadCompletedAppointments}>
+            <button style={buttonStyle('#E2E8F0', '#475467')} onClick={loadPointOfSaleDay}>
               <FontAwesomeIcon icon={faRotateRight} />
               Actualizar
             </button>
             <button
               style={buttonStyle(colors.azulAcero)}
-              onClick={() => setMessage(`Corte del ${fecha}: ${citas.length} citas completadas, total ${formatCurrency(totalPagado)}.`)}
+              onClick={() => setMessage(`Corte del ${fecha}: ${serviciosPagados.length} servicios pagados, total ${formatCurrency(totalPagado)}.`)}
             >
               <FontAwesomeIcon icon={faReceipt} />
               Corte de caja
@@ -335,11 +494,11 @@ export const AdminPOS: React.FC = () => {
         )}
 
         <div style={summaryGridStyle}>
-          {[
-            { label: 'Citas completadas', value: citas.length, detail: 'servicios cerrados', icon: faCalendarCheck, bg: '#EFF8FF', color: '#175CD3' },
-            { label: 'Total del dia', value: formatCurrency(totalPagado), detail: 'monto registrado', icon: faCashRegister, bg: '#ECFDF3', color: '#067647' },
-            { label: 'Ticket promedio', value: formatCurrency(ticketPromedio), detail: 'por cita completada', icon: faReceipt, bg: '#FFFAEB', color: colors.doradoClasico },
-            { label: 'Servicios', value: formatCurrency(totalServicios), detail: 'valor de catalogo', icon: faScissors, bg: '#F4F3FF', color: '#6938EF' },
+          {[ 
+            { label: 'Servicios pagados', value: serviciosPagados.length, detail: 'cerrados en caja', icon: faCalendarCheck, bg: '#EFF8FF', color: '#175CD3' },
+            { label: 'Total cobrado', value: formatCurrency(totalPagado), detail: 'monto registrado', icon: faCashRegister, bg: '#ECFDF3', color: '#067647' },
+            { label: 'Ticket promedio', value: formatCurrency(ticketPromedio), detail: 'por servicio pagado', icon: faReceipt, bg: '#FFFAEB', color: colors.doradoClasico },
+            { label: 'Citas por concluir', value: citasPorConcluir.length, detail: 'pendientes o confirmadas', icon: faScissors, bg: '#F4F3FF', color: '#6938EF' },
           ].map((stat) => (
             <div key={stat.label} style={statCardStyle}>
               <div>
@@ -357,27 +516,150 @@ export const AdminPOS: React.FC = () => {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: colors.azulAcero }}>Cargando citas completadas...</div>
+          <div style={{ textAlign: 'center', padding: 60, color: colors.azulAcero }}>Cargando informacion del dia...</div>
         ) : (
           <div style={layoutGridStyle}>
-            <section style={cardStyle}>
+            <div style={{ display: 'grid', gap: 20, minWidth: 0 }}>
+              <section style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontFamily: 'Playfair Display, serif', fontSize: 24, color: colors.negroSuave }}>
+                      Servicio sin cita
+                    </h2>
+                    <p style={{ margin: '6px 0 0', color: '#667085', lineHeight: 1.5 }}>
+                      Registra clientes que llegaron directo a la barberia. Se guarda como cita completada y pagada al 100%.
+                    </p>
+                  </div>
+                  <span style={{ padding: '9px 12px', borderRadius: 999, background: '#ECFDF3', color: '#067647', fontWeight: 900, fontSize: 13, display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                    <FontAwesomeIcon icon={faMoneyBillWave} />
+                    Pago presencial
+                  </span>
+                </div>
+
+                <form onSubmit={handleRegisterWalkInService} style={{ display: 'grid', gap: 16 }}>
+                  <div style={formGridStyle}>
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Sucursal
+                      <select style={inputStyle} value={walkInForm.localId} onChange={(event) => updateWalkInForm('localId', event.target.value)}>
+                        <option value="">Selecciona sucursal</option>
+                        {locales.map((local) => (
+                          <option key={local.id} value={local.id}>{local.nombre}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Barbero
+                      <select style={inputStyle} value={walkInForm.barberoId} onChange={(event) => updateWalkInForm('barberoId', event.target.value)}>
+                        <option value="">Selecciona barbero</option>
+                        {walkInBarberos.map((barbero) => (
+                          <option key={barbero.barbero_id} value={barbero.barbero_id}>{barbero.nombre}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Servicio
+                      <select style={inputStyle} value={walkInForm.servicioId} onChange={(event) => updateWalkInForm('servicioId', event.target.value)}>
+                        <option value="">Selecciona servicio</option>
+                        {servicios.map((servicio) => (
+                          <option key={servicio.id} value={servicio.id}>{servicio.nombre}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div style={formGridStyle}>
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Hora
+                      <input type="time" style={inputStyle} value={walkInForm.horaInicio} onChange={(event) => updateWalkInForm('horaInicio', event.target.value)} />
+                    </label>
+
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Metodo de pago
+                      <select style={inputStyle} value={walkInForm.metodoPago} onChange={(event) => updateWalkInForm('metodoPago', event.target.value)}>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                      </select>
+                    </label>
+
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Cliente
+                      <div style={{ position: 'relative', minWidth: 0 }}>
+                        <FontAwesomeIcon icon={faUser} style={{ position: 'absolute', left: 14, top: 15, color: '#98A2B3' }} />
+                        <input
+                          style={{ ...inputStyle, width: '100%', paddingLeft: 40, boxSizing: 'border-box' }}
+                          value={walkInForm.clienteNombre}
+                          onChange={(event) => updateWalkInForm('clienteNombre', event.target.value)}
+                          placeholder="Cliente mostrador"
+                        />
+                      </div>
+                    </label>
+                  </div>
+
+                  <div style={formWideGridStyle}>
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Telefono
+                      <div style={{ position: 'relative', minWidth: 0 }}>
+                        <FontAwesomeIcon icon={faPhone} style={{ position: 'absolute', left: 14, top: 15, color: '#98A2B3' }} />
+                        <input
+                          style={{ ...inputStyle, width: '100%', paddingLeft: 40, boxSizing: 'border-box' }}
+                          value={walkInForm.clienteTelefono}
+                          onChange={(event) => updateWalkInForm('clienteTelefono', event.target.value)}
+                          placeholder="Opcional"
+                        />
+                      </div>
+                    </label>
+
+                    <label style={{ display: 'grid', gap: 7, color: '#344054', fontWeight: 800, fontSize: 13 }}>
+                      Notas
+                      <input
+                        style={inputStyle}
+                        value={walkInForm.notas}
+                        onChange={(event) => updateWalkInForm('notas', event.target.value)}
+                        placeholder="Opcional"
+                      />
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap', border: '1px solid #E2E8F0', borderRadius: 14, padding: 14, background: '#F8FAFC' }}>
+                    <div>
+                      <strong style={{ color: colors.negroSuave }}>
+                        {selectedWalkInService?.nombre || 'Selecciona un servicio'}
+                      </strong>
+                      <div style={{ color: '#667085', fontSize: 13, marginTop: 4 }}>
+                        {selectedWalkInService
+                          ? `${selectedWalkInService.duracion} min - ${formatCurrency(selectedWalkInService.precio)}`
+                          : 'El registro se toma para la fecha filtrada en POS.'}
+                      </div>
+                    </div>
+                    <button type="submit" disabled={savingWalkIn} style={{ ...buttonStyle(colors.doradoClasico, '#111827'), opacity: savingWalkIn ? 0.7 : 1 }}>
+                      <FontAwesomeIcon icon={faSave} />
+                      {savingWalkIn ? 'Guardando...' : 'Registrar servicio'}
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              <section style={cardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
                 <div>
                   <h2 style={{ margin: 0, fontFamily: 'Playfair Display, serif', fontSize: 24, color: colors.negroSuave }}>
-                    Citas completadas
+                    Servicios pagados
                   </h2>
-                  <p style={{ margin: '6px 0 0', color: '#667085' }}>Solo aparecen citas con estado Completada para la fecha seleccionada.</p>
+                  <p style={{ margin: '6px 0 0', color: '#667085' }}>Servicios cerrados y pagados para la fecha seleccionada.</p>
                 </div>
                 <span style={{ padding: '8px 12px', borderRadius: 999, background: '#F2F4F7', color: '#344054', fontWeight: 800 }}>
                   {fecha}
                 </span>
               </div>
 
-              {citas.length === 0 ? (
+              {serviciosPagados.length === 0 ? (
                 <div style={{ padding: '70px 20px', textAlign: 'center', color: '#667085' }}>
                   <FontAwesomeIcon icon={faScissors} style={{ fontSize: 42, opacity: 0.35, marginBottom: 14 }} />
-                  <h3 style={{ margin: '0 0 8px', color: '#344054' }}>Sin citas completadas</h3>
-                  <div>No hay servicios cerrados con los filtros actuales.</div>
+                  <h3 style={{ margin: '0 0 8px', color: '#344054' }}>Sin servicios pagados</h3>
+                  <div>No hay servicios cobrados con los filtros actuales.</div>
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
@@ -390,7 +672,7 @@ export const AdminPOS: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {citas.map((cita) => (
+                      {serviciosPagados.map((cita) => (
                         <tr key={cita.id}>
                           <td style={tdStyle}>#{cita.id}</td>
                           <td style={tdStyle}>
@@ -408,7 +690,7 @@ export const AdminPOS: React.FC = () => {
                           </td>
                           <td style={tdStyle}>{formatTime(cita.hora_inicio)} - {formatTime(cita.hora_fin)}</td>
                           <td style={{ ...tdStyle, fontWeight: 900, color: colors.doradoClasico }}>
-                            {formatCurrency(Number(cita.monto_pagado || cita.servicio_precio || 0))}
+                            {formatCurrency(getPaymentAmount(cita))}
                           </td>
                         </tr>
                       ))}
@@ -416,9 +698,69 @@ export const AdminPOS: React.FC = () => {
                   </table>
                 </div>
               )}
-            </section>
+              </section>
 
-            <aside style={{ display: 'grid', gap: 20, alignContent: 'start' }}>
+              <section style={cardStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontFamily: 'Playfair Display, serif', fontSize: 24, color: colors.negroSuave }}>
+                      Citas por concluir
+                    </h2>
+                    <p style={{ margin: '6px 0 0', color: '#667085' }}>Reservas pendientes o confirmadas que aun no se han cerrado en caja.</p>
+                  </div>
+                  <span style={{ padding: '8px 12px', borderRadius: 999, background: '#FFFAEB', color: '#B54708', fontWeight: 800 }}>
+                    {citasPorConcluir.length} pendientes
+                  </span>
+                </div>
+
+                {citasPorConcluir.length === 0 ? (
+                  <div style={{ padding: '54px 20px', textAlign: 'center', color: '#667085' }}>
+                    <FontAwesomeIcon icon={faCalendarCheck} style={{ fontSize: 40, opacity: 0.35, marginBottom: 14 }} />
+                    <h3 style={{ margin: '0 0 8px', color: '#344054' }}>Sin citas por concluir</h3>
+                    <div>No hay reservas abiertas con los filtros actuales.</div>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={tableStyle}>
+                      <thead>
+                        <tr>
+                          {['Folio', 'Cliente', 'Servicio', 'Barbero', 'Hora', 'Estado', 'Monto'].map((head) => (
+                            <th key={head} style={thStyle}>{head}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {citasPorConcluir.map((cita) => (
+                          <tr key={cita.id}>
+                            <td style={tdStyle}>#{cita.id}</td>
+                            <td style={tdStyle}>
+                              <strong>{cita.cliente_nombre}</strong>
+                              <div style={{ color: '#667085', fontSize: 12 }}>{cita.cliente_telefono || cita.cliente_email}</div>
+                            </td>
+                            <td style={tdStyle}>
+                              <strong>{cita.servicio_nombre}</strong>
+                              <div style={{ color: '#667085', fontSize: 12 }}>{cita.servicio_duracion} min</div>
+                            </td>
+                            <td style={tdStyle}>{cita.barbero_nombre}</td>
+                            <td style={tdStyle}>{formatTime(cita.hora_inicio)} - {formatTime(cita.hora_fin)}</td>
+                            <td style={tdStyle}>
+                              <span style={{ padding: '7px 10px', borderRadius: 999, background: '#FEF3C7', color: '#B45309', fontWeight: 900, fontSize: 12 }}>
+                                {cita.estado_nombre || 'Pendiente'}
+                              </span>
+                            </td>
+                            <td style={{ ...tdStyle, fontWeight: 900, color: '#475467' }}>
+                              {formatCurrency(getPaymentAmount(cita))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <aside style={{ display: 'grid', gap: 20, alignContent: 'start', minWidth: 0 }}>
               <section style={cardStyle}>
                 <h2 style={{ margin: '0 0 16px', fontSize: 20, color: colors.negroSuave }}>
                   <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: colors.doradoClasico, marginRight: 8 }} />

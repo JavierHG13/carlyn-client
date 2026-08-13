@@ -42,6 +42,8 @@ interface HorarioDisponible {
   hora: string;
   disponible?: boolean;
   ocupado?: boolean;
+  pasado?: boolean;
+  motivo?: string | null;
 }
 
 const meses = [
@@ -550,20 +552,21 @@ export const AgendarCita: React.FC<AgendarCitaProps> = ({ modal = false }) => {
                     <div style={timeGridStyle}>
                       {horarios.map((horario) => {
                         const isDisabled = horario.disponible === false || horario.ocupado === true;
+                        const disabledReason = horario.motivo || (horario.pasado ? 'Horario pasado' : 'Horario reservado');
                         return (
                           <button
                             key={horario.hora}
                             type="button"
                             disabled={isDisabled}
-                            aria-label={`${horario.hora.slice(0, 5)} ${isDisabled ? 'ocupado' : 'disponible'}`}
-                            title={isDisabled ? 'Horario reservado' : 'Horario disponible'}
+                            aria-label={`${horario.hora.slice(0, 5)} ${isDisabled ? disabledReason : 'disponible'}`}
+                            title={isDisabled ? disabledReason : 'Horario disponible'}
                             style={timeSlotStyle(selectedHora === horario.hora, isDisabled)}
                             onClick={() => {
                               if (!isDisabled) setSelectedHora(horario.hora);
                             }}
                           >
                             <span>{horario.hora.slice(0, 5)}</span>
-                            {isDisabled && <small style={timeSlotLabelStyle}>Ocupado</small>}
+                            {isDisabled && <small style={timeSlotLabelStyle}>{disabledReason}</small>}
                           </button>
                         );
                       })}

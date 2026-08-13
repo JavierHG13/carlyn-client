@@ -62,9 +62,9 @@ export const MisCitas: React.FC = () => {
             await loadCitas();
             setCancelModalOpen(false);
             setSelectedCita(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error canceling cita:', error);
-            alert('Error al cancelar la cita');
+            alert(error?.response?.data?.message || 'Error al cancelar la cita');
         } finally {
             setCancelLoading(false);
         }
