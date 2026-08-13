@@ -54,6 +54,31 @@ interface MetricInfo {
   algorithm?: string;
   trained_at?: string;
   samples?: number;
+  is_current?: boolean;
+  expected_version?: string;
+  metrics?: {
+    model_version?: string;
+    accuracy?: number;
+    balanced_accuracy?: number;
+    precision?: number;
+    recall?: number;
+    f1?: number;
+    roc_auc?: number;
+    binary_threshold?: number;
+    cross_validation_folds?: number;
+    null_treatment?: { categorical?: string; numeric?: string };
+    selection_metric?: string;
+    clusters?: number;
+    scaler?: string;
+    features?: string[];
+    selection_criterion?: string;
+    comparison?: Array<{
+      model: string;
+      silhouette?: number;
+      davies_bouldin?: number;
+      calinski_harabasz?: number;
+    }>;
+  };
 }
 
 interface NoShowCita {
@@ -82,7 +107,8 @@ interface ClientSegmentSummary {
   color: string;
   total: number;
   gastoPromedio: number;
-  noShowPromedio: number;
+  recenciaPromedio: number;
+  frecuenciaPromedio: number;
 }
 
 interface SegmentedClient {
@@ -133,6 +159,7 @@ interface SegmentationModule {
 type KnowledgeData = NoShowModule | IncomeModule | SegmentationModule;
 
 const money = (value: number) => `$${Number(value || 0).toLocaleString('es-MX')}`;
+const percent = (value?: number) => `${((value || 0) * 100).toFixed(1)}%`;
 
 const panelStyle: React.CSSProperties = {
   background: '#FFFFFF',
@@ -340,7 +367,7 @@ export const AdminKnowledgeProposal: React.FC = () => {
     setTraining(true);
     setError('');
     try {
-      await prediccionService.entrenarKnowledgeModels(1000);
+      await prediccionService.entrenarKnowledgeModels();
       await loadData();
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'No se pudo entrenar el modelo.'));
@@ -379,9 +406,66 @@ export const AdminKnowledgeProposal: React.FC = () => {
     cursor: 'pointer',
   });
 
+  const renderModelEvidence = () => {
+    const metric = data?.metric;
+    const metrics = metric?.metrics;
+    if (!metric || !metrics) return null;
+
+    if (key === 'no-show') {
+      const indicators = [
+        ['Accuracy', percent(metrics.accuracy)],
+        ['Balanced accuracy', percent(metrics.balanced_accuracy)],
+        ['Recall inasistencia', percent(metrics.recall)],
+        ['F1 inasistencia', percent(metrics.f1)],
+        ['ROC-AUC', metrics.roc_auc?.toFixed(3) || '0.000'],
+      ];
+      return (
+        <section style={{ ...panelStyle, marginBottom: 18 }}>
+          <h3 style={panelTitleStyle}><FontAwesomeIcon icon={faChartLine} style={{ color: current.accent }} />Validacion del modelo</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 10 }}>
+            {indicators.map(([label, value]) => (
+              <div key={label} style={{ padding: 12, background: '#F8FAFC', borderRadius: 10, border: '1px solid #E2E8F0' }}>
+                <div style={{ color: '#64748B', fontSize: 12 }}>{label}</div>
+                <strong style={{ display: 'block', marginTop: 4, fontSize: 20 }}>{value}</strong>
+              </div>
+            ))}
+          </div>
+          <p style={{ margin: '14px 0 0', color: '#475569', fontSize: 13, lineHeight: 1.55 }}>
+            <strong>{metrics.cross_validation_folds || 5} folds estratificados.</strong>{' '}
+            Nulos categoricos: moda; numericos: mediana. El umbral {metrics.binary_threshold?.toFixed(3) || 'calibrado'}
+            {' '}se determino con predicciones fuera de muestra para priorizar la deteccion de inasistencias.
+          </p>
+        </section>
+      );
+    }
+
+    if (key === 'segmentacion') {
+      return (
+        <section style={{ ...panelStyle, marginBottom: 18 }}>
+          <h3 style={panelTitleStyle}><FontAwesomeIcon icon={faChartPie} style={{ color: current.accent }} />Comparacion de clustering</h3>
+          <p style={{ margin: '0 0 14px', color: '#475569', fontSize: 13 }}>
+            {metrics.scaler || 'StandardScaler'} con {metrics.clusters || 3} clusters y variables: {(metrics.features || []).join(', ')}.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+            {(metrics.comparison || []).map((model) => (
+              <div key={model.model} style={{ padding: 14, border: `1px solid ${model.model === metric.algorithm ? current.accent : '#E2E8F0'}`, borderRadius: 12, background: model.model === metric.algorithm ? `${current.accent}0B` : '#F8FAFC' }}>
+                <strong>{model.model}{model.model === metric.algorithm ? ' - seleccionado' : ''}</strong>
+                <div style={{ marginTop: 8, color: '#64748B', fontSize: 13, lineHeight: 1.6 }}>
+                  Silhouette: {model.silhouette?.toFixed(3)} · Davies-Bouldin: {model.davies_bouldin?.toFixed(3)} · Calinski-Harabasz: {model.calinski_harabasz?.toFixed(1)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    return null;
+  };
+
   const renderNoShow = () => {
     const moduleData = data as NoShowModule | null;
-    const kpis = moduleData?.kpis || {};
+    const kpis: Partial<NoShowModule['kpis']> = moduleData?.kpis || {};
     const citas = moduleData?.citas || [];
     const acciones = moduleData?.acciones || [];
 
@@ -461,7 +545,7 @@ export const AdminKnowledgeProposal: React.FC = () => {
 
   const renderIngresos = () => {
     const moduleData = data as IncomeModule | null;
-    const kpis = moduleData?.kpis || {};
+    const kpis: Partial<IncomeModule['kpis']> = moduleData?.kpis || {};
     const sucursales = moduleData?.sucursales || [];
     const decisiones = moduleData?.decisiones || [];
 
@@ -528,6 +612,10 @@ export const AdminKnowledgeProposal: React.FC = () => {
             <div key={segment.nombre} style={{ ...panelStyle, padding: '18px', borderTop: `4px solid ${segment.color}` }}>
               <div style={{ fontSize: '24px', fontWeight: 900, color: segment.color }}>{segment.total} clientes</div>
               <div style={{ marginTop: '6px', fontWeight: 800 }}>{segment.nombre}</div>
+              <div style={{ marginTop: 9, color: '#64748B', fontSize: 12, lineHeight: 1.55 }}>
+                Gasto promedio: {money(segment.gastoPromedio)}<br />
+                Frecuencia promedio: {segment.frecuenciaPromedio} · Recencia: {segment.recenciaPromedio} dias
+              </div>
             </div>
           ))}
         </div>
@@ -641,10 +729,17 @@ export const AdminKnowledgeProposal: React.FC = () => {
           </div>
         )}
 
+        {data?.metric?.is_current === false && (
+          <div style={{ ...panelStyle, borderColor: '#F59E0B', background: '#FFFBEB', color: '#92400E', marginBottom: '18px' }}>
+            <strong>Modelo anterior detectado.</strong> Reentrena una vez para generar resultados con Gradient Boosting calibrado y clustering de tres segmentos.
+          </div>
+        )}
+
         {loading ? (
           <div style={panelStyle}>Cargando predicciones...</div>
         ) : (
           <>
+            {renderModelEvidence()}
             {key === 'no-show' && renderNoShow()}
             {key === 'ingresos' && renderIngresos()}
             {key === 'segmentacion' && renderSegmentacion()}

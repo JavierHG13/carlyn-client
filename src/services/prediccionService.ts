@@ -39,8 +39,8 @@ export const prediccionService = {
     return response.data;
   },
 
-  entrenarKnowledgeModels: async (rows = 1000) => {
-    const response = await api.post("/prediccion/conocimiento/entrenar", { rows });
+  entrenarKnowledgeModels: async () => {
+    const response = await api.post("/prediccion/conocimiento/entrenar");
     return response.data;
   },
 };
