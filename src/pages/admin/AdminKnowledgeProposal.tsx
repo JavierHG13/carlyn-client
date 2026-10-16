@@ -68,6 +68,7 @@ interface MetricInfo {
     cross_validation_folds?: number;
     null_treatment?: { categorical?: string; numeric?: string };
     selection_metric?: string;
+    feature_definitions?: Record<string, string>;
     clusters?: number;
     scaler?: string;
     features?: string[];
@@ -433,8 +434,22 @@ export const AdminKnowledgeProposal: React.FC = () => {
           <p style={{ margin: '14px 0 0', color: '#475569', fontSize: 13, lineHeight: 1.55 }}>
             <strong>{metrics.cross_validation_folds || 5} folds estratificados.</strong>{' '}
             Nulos categoricos: moda; numericos: mediana. El umbral {metrics.binary_threshold?.toFixed(3) || 'calibrado'}
-            {' '}se determino con predicciones fuera de muestra para priorizar la deteccion de inasistencias.
+            {' '}se determino con predicciones fuera de muestra para maximizar recall manteniendo accuracy minimo de 80%.
           </p>
+          {metrics.feature_definitions && (
+            <div style={{ marginTop: 14 }}>
+              <strong style={{ display: 'block', marginBottom: 8, color: '#334155', fontSize: 13 }}>
+                Nuevas variables conocidas antes de la cita
+              </strong>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {Object.entries(metrics.feature_definitions).map(([name, description]) => (
+                  <span key={name} title={description} style={{ padding: '7px 10px', borderRadius: 999, background: '#EEF2FF', color: '#3730A3', fontSize: 12, fontWeight: 700 }}>
+                    {name.replaceAll('_', ' ')}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       );
     }

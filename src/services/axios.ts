@@ -1,30 +1,30 @@
 import axios from "axios";
 
-const API_URL =
-    import.meta.env.VITE_API_URL ||
-    (import.meta.env.DEV ? "http://localhost:4000" : "https://barberia-carlyn-server.vercel.app");
+//const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:4000" : "https://barberia-carlyn-server.vercel.app");
 
-console.log(API_URL);
+const API_URL = "http://localhost:4000"
+
+console.log("Api url:", API_URL);
 
 const api = axios.create({
-    baseURL: `${API_URL}/api`,
-    withCredentials: true, // Para enviar las cookies de la sesion al servidor
+  baseURL: `${API_URL}/api`,
+  withCredentials: true, // Para enviar las cookies de la sesion al servidor
 });
 
 api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("jwt");
+  (config) => {
+    const token = localStorage.getItem("jwt");
 
-        //console.log("Token Interceptors: Bearer", token)
-        
-        if (token) {
-            config.headers["Authorization"] = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+    //console.log("Token Interceptors: Bearer", token)
+
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
 );
 
 export default api;
