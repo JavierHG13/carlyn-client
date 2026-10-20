@@ -97,6 +97,16 @@ export const Footer: React.FC = () => {
         </div>
 
         <div>
+          <h3 style={footerTitleStyle}>Legal</h3>
+          <Link to="/politica-de-privacidad" style={footerLinkStyle}>
+            Política de Privacidad
+          </Link>
+          <Link to="/terminos-y-condiciones" style={footerLinkStyle}>
+            Términos y Condiciones
+          </Link>
+        </div>
+
+        <div>
           <h3 style={footerTitleStyle}>Contacto</h3>
           <p style={{ opacity: 0.8 }}>
             <FontAwesomeIcon icon={faPhone} style={{ marginRight: '8px' }} />

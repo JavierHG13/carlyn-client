@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   
   const apiUrl = (env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-  const apiOrigin = new URL(apiUrl).origin;
+  const apiOriginPattern = new URL(apiUrl).origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   return {
     plugins: [
@@ -41,6 +41,13 @@ export default defineConfig(({ mode }) => {
         },
 
         workbox: {
+          // Precarga las rutas legales: estarán disponibles desde la primera
+          // instalación, aun cuando la aplicación se abra sin conexión.
+          additionalManifestEntries: [
+            { url: "/politica-de-privacidad", revision: null },
+            { url: "/terminos-y-condiciones", revision: null },
+          ],
+
           globPatterns: [
             "**/*.{js,css,html,ico,png,svg,woff2}",
           ],
@@ -67,9 +74,11 @@ export default defineConfig(({ mode }) => {
 
             {
               // Catálogo público de servicios
-              urlPattern: ({ url }) =>
-                url.origin === apiOrigin &&
-                url.pathname === "/api/servicios/activos",
+              // Un RegExp se serializa dentro del Service Worker; una función
+              // no puede cerrar sobre variables de esta configuración.
+              urlPattern: new RegExp(
+                `^${apiOriginPattern}/api/servicios/activos(?:\\?.*)?$`,
+              ),
 
               handler: "NetworkFirst",
 
