@@ -31,6 +31,7 @@ import { AdminPrediccion } from './pages/admin/AdminPrediccion';
 import { AdminKnowledgeProposal } from './pages/admin/AdminKnowledgeProposal';
 import { BarberoDashboard } from "./pages/barbero/BarberoDashboard";
 import { LegalPage } from "./pages/public/LegalPage";
+import { Contacto } from "./pages/public/Contacto";
 
 
 import { MisCitas } from "./pages/cliente/MisCitas";
@@ -64,6 +65,7 @@ function AppRoutes() {
           <Route path="/nostros" element={<Nosotros />} />
           <Route path="/alexa" element={<AlexaLink />} />
           <Route path="/alexa/vincular" element={<AlexaVincular />} />
+          <Route path="/contacto" element={<Contacto />} />
           <Route path="/politica-de-privacidad" element={<LegalPage type="privacy" />} />
           <Route path="/terminos-y-condiciones" element={<LegalPage type="terms" />} />
 

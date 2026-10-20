@@ -44,6 +44,9 @@ export default defineConfig(({ mode }) => {
           // Precarga las rutas legales: estarán disponibles desde la primera
           // instalación, aun cuando la aplicación se abra sin conexión.
           additionalManifestEntries: [
+            { url: "/", revision: null },
+            { url: "/login", revision: null },
+            { url: "/contacto", revision: null },
             { url: "/politica-de-privacidad", revision: null },
             { url: "/terminos-y-condiciones", revision: null },
           ],
