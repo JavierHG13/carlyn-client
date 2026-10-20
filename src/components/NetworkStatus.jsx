@@ -1,55 +1,67 @@
 
 import { useEffect, useState } from "react";
 
+const getPwaDisplayMode = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  window.matchMedia("(display-mode: fullscreen)").matches ||
+  window.navigator.standalone === true;
+
 export default function NetworkStatus() {
   const [isPWA, setIsPWA] = useState(false);
-  const [isOnline, setIsOnline] = useState(
-    navigator.onLine
-  );
-  const [visible, setVisible] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches ||
-      window.navigator.standalone === true;
-
+    const standalone = getPwaDisplayMode();
     setIsPWA(standalone);
 
-    if (!standalone) return;
+    if (!standalone) return undefined;
 
-    const handleOffline = () => {
-      setIsOnline(false);
-      setVisible(true);
+    const updateStatus = (online) => {
+      setIsOnline(online);
+      setNotice(online ? "online" : "offline");
+    };
+    const handleOffline = () => updateStatus(false);
+    const handleOnline = () => updateStatus(true);
+    const syncStatus = () => {
+      const online = navigator.onLine;
+      setIsOnline((currentStatus) => {
+        if (currentStatus !== online) setNotice(online ? "online" : "offline");
+        return online;
+      });
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") syncStatus();
     };
 
-    const handleOnline = () => {
-      setIsOnline(true);
-      setVisible(true);
-    };
+    // También informa si la PWA se abrió ya sin conexión.
+    if (!navigator.onLine) setNotice("offline");
 
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
+    window.addEventListener("pageshow", syncStatus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("pageshow", syncStatus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
-  // Desaparece después de 4 segundos,
-  // tanto si se pierde como si vuelve internet.
+  // La reconexión se confirma durante unos segundos; el aviso offline sigue
+  // visible hasta que la red vuelva.
   useEffect(() => {
-    if (!visible) return;
+    if (notice !== "online") return undefined;
 
-    const timeout = window.setTimeout(() => {
-      setVisible(false);
-    }, 4000);
-
+    const timeout = window.setTimeout(() => setNotice(null), 4000);
     return () => window.clearTimeout(timeout);
-  }, [visible, isOnline]);
+  }, [notice]);
 
-  if (!isPWA || !visible) return null;
+  if (!isPWA || !notice) return null;
+
+  const offline = notice === "offline";
 
   return (
     <div
@@ -66,8 +78,7 @@ export default function NetworkStatus() {
         padding: "14px 20px",
         borderRadius: "14px",
 
-        // Negro transparente tipo vidrio
-        background: "rgba(0, 0, 0, 0.65)",
+        background: offline ? "rgba(146, 64, 14, 0.92)" : "rgba(21, 128, 61, 0.92)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
 
@@ -76,7 +87,7 @@ export default function NetworkStatus() {
 
         color: "#FFFFFF",
         fontSize: "13px",
-        fontWeight: 500,
+        fontWeight: 600,
         fontFamily: "inherit",
         textAlign: "center",
         zIndex: 99999,
@@ -85,7 +96,7 @@ export default function NetworkStatus() {
     >
       {isOnline
         ? "Conexión a internet restablecida"
-        : "Sin conexión a internet"}
+        : "Sin conexión a internet. Estás usando la versión guardada."}
     </div>
   );
 }
