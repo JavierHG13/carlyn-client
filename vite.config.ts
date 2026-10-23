@@ -6,7 +6,12 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   
-  const apiUrl = (env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+  // Debe coincidir con la URL que usa Axios. De otro modo, el Service Worker
+  // no reconoce ni guarda el catálogo cuando la aplicación está publicada.
+  const defaultApiUrl = mode === "development"
+    ? "http://localhost:4000"
+    : "https://barberia-carlyn-server.vercel.app";
+  const apiUrl = (env.VITE_API_URL || defaultApiUrl).replace(/\/$/, "");
 
   const apiOriginPattern = new URL(apiUrl).origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -91,7 +96,7 @@ export default defineConfig(({ mode }) => {
 
                 expiration: {
                   maxEntries: 1,
-                  maxAgeSeconds: 5 * 60,
+                  maxAgeSeconds: 7 * 24 * 60 * 60,
                 },
 
                 cacheableResponse: {

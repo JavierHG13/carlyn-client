@@ -1,22 +1,11 @@
 
 import { useEffect, useState } from "react";
 
-const getPwaDisplayMode = () =>
-  window.matchMedia("(display-mode: standalone)").matches ||
-  window.matchMedia("(display-mode: fullscreen)").matches ||
-  window.navigator.standalone === true;
-
 export default function NetworkStatus() {
-  const [isPWA, setIsPWA] = useState(false);
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [notice, setNotice] = useState(null);
 
   useEffect(() => {
-    const standalone = getPwaDisplayMode();
-    setIsPWA(standalone);
-
-    if (!standalone) return undefined;
-
     const updateStatus = (online) => {
       setIsOnline(online);
       setNotice(online ? "online" : "offline");
@@ -34,7 +23,7 @@ export default function NetworkStatus() {
       if (document.visibilityState === "visible") syncStatus();
     };
 
-    // También informa si la PWA se abrió ya sin conexión.
+    // También informa si el sitio se abrió ya sin conexión.
     if (!navigator.onLine) setNotice("offline");
 
     window.addEventListener("offline", handleOffline);
@@ -50,16 +39,15 @@ export default function NetworkStatus() {
     };
   }, []);
 
-  // La reconexión se confirma durante unos segundos; el aviso offline sigue
-  // visible hasta que la red vuelva.
+  // Los avisos del sitio y de la PWA desaparecen después de unos segundos.
   useEffect(() => {
-    if (notice !== "online") return undefined;
+    if (!notice) return undefined;
 
     const timeout = window.setTimeout(() => setNotice(null), 4000);
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
-  if (!isPWA || !notice) return null;
+  if (!notice) return null;
 
   const offline = notice === "offline";
 
@@ -91,7 +79,7 @@ export default function NetworkStatus() {
         fontFamily: "inherit",
         textAlign: "center",
         zIndex: 99999,
-        pointerEvents: "none",
+        pointerEvents: "none",     
       }}
     >
       {isOnline

@@ -6,6 +6,28 @@ import type {
   ServicioStats,
 } from "../types/servicio.ts";
 
+const ACTIVE_SERVICES_CACHE_KEY = "carlyn:active-services";
+
+const getCachedActiveServices = (): Servicio[] | null => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(ACTIVE_SERVICES_CACHE_KEY) || "null");
+    return Array.isArray(cached?.servicios) ? cached.servicios : null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheActiveServices = (servicios: Servicio[]) => {
+  try {
+    localStorage.setItem(
+      ACTIVE_SERVICES_CACHE_KEY,
+      JSON.stringify({ servicios, updatedAt: Date.now() }),
+    );
+  } catch {
+    // Si el almacenamiento no está disponible, Workbox sigue siendo el respaldo.
+  }
+};
+
 export const servicioService = {
   // Obtener todos los servicios (admin)
   getAll: async (filters?: {
@@ -23,8 +45,16 @@ export const servicioService = {
 
   // Obtener servicios activos (público)
   getActive: async (): Promise<Servicio[]> => {
-    const response = await api.get("/servicios/activos");
-    return response.data.servicios;
+    try {
+      const response = await api.get("/servicios/activos");
+      const servicios = response.data.servicios;
+      cacheActiveServices(servicios);
+      return servicios;
+    } catch (error) {
+      const cachedServices = getCachedActiveServices();
+      if (cachedServices) return cachedServices;
+      throw error;
+    }
   },
 
   // Obtener servicios populares
